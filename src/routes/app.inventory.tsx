@@ -143,7 +143,7 @@ function RestockDialog({ productId, product, onClose, onSaved }: { productId: st
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const { error } = await supabase.rpc("record_restock", { _product_id: productId, _quantity: qty, _note: note || null });
+    const { error } = await supabase.rpc("record_restock" as any, { _product_id: productId, _quantity: qty, _note: note || null } as any);
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Stock updated");

@@ -112,9 +112,9 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
       if (error) { setSaving(false); return toast.error(error.message); }
       cid = data.id;
     }
-    const { error } = await supabase.rpc("record_sale", {
+    const { error } = await supabase.rpc("record_sale" as any, {
       _product_id: productId, _quantity: qty, _unit_price: unitPrice, _customer_id: cid, _is_credit: isCredit,
-    });
+    } as any);
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success(lang === "en" ? "Sale recorded" : "Muuzo umehifadhiwa");
