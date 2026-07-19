@@ -17,6 +17,13 @@ import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AuthSignupRouteImport } from './routes/auth.signup'
 import { Route as AuthSigninRouteImport } from './routes/auth.signin'
 import { Route as AuthForgotRouteImport } from './routes/auth.forgot'
+import { Route as AppSalesRouteImport } from './routes/app.sales'
+import { Route as AppReportsRouteImport } from './routes/app.reports'
+import { Route as AppInventoryRouteImport } from './routes/app.inventory'
+import { Route as AppExpensesRouteImport } from './routes/app.expenses'
+import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
+import { Route as AppCreditRouteImport } from './routes/app.credit'
+import { Route as AppAssistantRouteImport } from './routes/app.assistant'
 
 const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
@@ -58,12 +65,54 @@ const AuthForgotRoute = AuthForgotRouteImport.update({
   path: '/forgot',
   getParentRoute: () => AuthRoute,
 } as any)
+const AppSalesRoute = AppSalesRouteImport.update({
+  id: '/sales',
+  path: '/sales',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInventoryRoute = AppInventoryRouteImport.update({
+  id: '/inventory',
+  path: '/inventory',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppExpensesRoute = AppExpensesRouteImport.update({
+  id: '/expenses',
+  path: '/expenses',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppCreditRoute = AppCreditRouteImport.update({
+  id: '/credit',
+  path: '/credit',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAssistantRoute = AppAssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/welcome': typeof WelcomeRoute
+  '/app/assistant': typeof AppAssistantRoute
+  '/app/credit': typeof AppCreditRoute
+  '/app/dashboard': typeof AppDashboardRoute
+  '/app/expenses': typeof AppExpensesRoute
+  '/app/inventory': typeof AppInventoryRoute
+  '/app/reports': typeof AppReportsRoute
+  '/app/sales': typeof AppSalesRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/signin': typeof AuthSigninRoute
   '/auth/signup': typeof AuthSignupRoute
@@ -73,6 +122,13 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/welcome': typeof WelcomeRoute
+  '/app/assistant': typeof AppAssistantRoute
+  '/app/credit': typeof AppCreditRoute
+  '/app/dashboard': typeof AppDashboardRoute
+  '/app/expenses': typeof AppExpensesRoute
+  '/app/inventory': typeof AppInventoryRoute
+  '/app/reports': typeof AppReportsRoute
+  '/app/sales': typeof AppSalesRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/signin': typeof AuthSigninRoute
   '/auth/signup': typeof AuthSignupRoute
@@ -84,6 +140,13 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/welcome': typeof WelcomeRoute
+  '/app/assistant': typeof AppAssistantRoute
+  '/app/credit': typeof AppCreditRoute
+  '/app/dashboard': typeof AppDashboardRoute
+  '/app/expenses': typeof AppExpensesRoute
+  '/app/inventory': typeof AppInventoryRoute
+  '/app/reports': typeof AppReportsRoute
+  '/app/sales': typeof AppSalesRoute
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/signin': typeof AuthSigninRoute
   '/auth/signup': typeof AuthSignupRoute
@@ -96,6 +159,13 @@ export interface FileRouteTypes {
     | '/app'
     | '/auth'
     | '/welcome'
+    | '/app/assistant'
+    | '/app/credit'
+    | '/app/dashboard'
+    | '/app/expenses'
+    | '/app/inventory'
+    | '/app/reports'
+    | '/app/sales'
     | '/auth/forgot'
     | '/auth/signin'
     | '/auth/signup'
@@ -105,6 +175,13 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/welcome'
+    | '/app/assistant'
+    | '/app/credit'
+    | '/app/dashboard'
+    | '/app/expenses'
+    | '/app/inventory'
+    | '/app/reports'
+    | '/app/sales'
     | '/auth/forgot'
     | '/auth/signin'
     | '/auth/signup'
@@ -115,6 +192,13 @@ export interface FileRouteTypes {
     | '/app'
     | '/auth'
     | '/welcome'
+    | '/app/assistant'
+    | '/app/credit'
+    | '/app/dashboard'
+    | '/app/expenses'
+    | '/app/inventory'
+    | '/app/reports'
+    | '/app/sales'
     | '/auth/forgot'
     | '/auth/signin'
     | '/auth/signup'
@@ -186,14 +270,77 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthForgotRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/app/sales': {
+      id: '/app/sales'
+      path: '/sales'
+      fullPath: '/app/sales'
+      preLoaderRoute: typeof AppSalesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/reports': {
+      id: '/app/reports'
+      path: '/reports'
+      fullPath: '/app/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/inventory': {
+      id: '/app/inventory'
+      path: '/inventory'
+      fullPath: '/app/inventory'
+      preLoaderRoute: typeof AppInventoryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/expenses': {
+      id: '/app/expenses'
+      path: '/expenses'
+      fullPath: '/app/expenses'
+      preLoaderRoute: typeof AppExpensesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/dashboard': {
+      id: '/app/dashboard'
+      path: '/dashboard'
+      fullPath: '/app/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/credit': {
+      id: '/app/credit'
+      path: '/credit'
+      fullPath: '/app/credit'
+      preLoaderRoute: typeof AppCreditRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/assistant': {
+      id: '/app/assistant'
+      path: '/assistant'
+      fullPath: '/app/assistant'
+      preLoaderRoute: typeof AppAssistantRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAssistantRoute: typeof AppAssistantRoute
+  AppCreditRoute: typeof AppCreditRoute
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppExpensesRoute: typeof AppExpensesRoute
+  AppInventoryRoute: typeof AppInventoryRoute
+  AppReportsRoute: typeof AppReportsRoute
+  AppSalesRoute: typeof AppSalesRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAssistantRoute: AppAssistantRoute,
+  AppCreditRoute: AppCreditRoute,
+  AppDashboardRoute: AppDashboardRoute,
+  AppExpensesRoute: AppExpensesRoute,
+  AppInventoryRoute: AppInventoryRoute,
+  AppReportsRoute: AppReportsRoute,
+  AppSalesRoute: AppSalesRoute,
   AppIndexRoute: AppIndexRoute,
 }
 
