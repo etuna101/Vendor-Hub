@@ -146,9 +146,9 @@ function TrendCard({ points, label, lang }: { points: number[]; label: string; l
       {total === 0 ? (
         <p className="mt-2 text-sm text-muted-foreground">{lang === "sw" ? "Hakuna mauzo katika kipindi hiki bado." : "No sales in this period yet."}</p>
       ) : (
-        <svg viewBox={`0 0 ${w} ${h}`} className="mt-2 h-24 w-full">
-          <path d={area} fill="hsl(var(--primary) / 0.12)" />
-          <path d={d} fill="none" stroke="hsl(var(--primary))" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+        <svg viewBox={`0 0 ${w} ${h}`} className="mt-2 h-24 w-full text-primary">
+          <path d={area} fill="currentColor" opacity={0.12} />
+          <path d={d} fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       )}
     </div>
