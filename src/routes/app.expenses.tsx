@@ -82,14 +82,16 @@ function ExpensesScreen() {
 }
 
 function AddExpense({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const { t } = useI18n();
-  const [form, setForm] = useState({ category: "stock_purchase" as (typeof CATEGORIES)[number], amount: 0, description: "" });
+  const { t, lang } = useI18n();
+  const [category, setCategory] = useState<CategoryKey>("stock_purchase" as CategoryKey);
+  const [amount, setAmount] = useState(0);
+  const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
     const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("expenses").insert({ ...form, user_id: u.user!.id });
+    const { error } = await supabase.from("expenses").insert({ category, amount, description, user_id: u.user!.id });
     setSaving(false);
     if (error) return toast.error(error.message);
     toast.success("Saved");
@@ -98,19 +100,35 @@ function AddExpense({ onClose, onSaved }: { onClose: () => void; onSaved: () => 
   return (
     <Modal onClose={onClose} title={t("addExpense")}>
       <form onSubmit={submit} className="flex flex-col gap-3">
-        <label className="flex flex-col gap-1">
+        <div className="flex flex-col gap-2">
           <span className="text-sm font-semibold">{t("category")}</span>
-          <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value as any })} className="tap-target rounded-xl border border-input bg-card px-3">
-            {CATEGORIES.map((c) => <option key={c} value={c}>{c.replace("_", " ")}</option>)}
-          </select>
-        </label>
+          <div className="grid grid-cols-2 gap-2">
+            {CATEGORIES.map((c) => {
+              const Icon = c.icon;
+              const active = category === c.key;
+              return (
+                <button
+                  type="button"
+                  key={c.key}
+                  onClick={() => setCategory(c.key as CategoryKey)}
+                  className={`tap-target flex items-center gap-2 rounded-2xl border px-3 text-sm font-semibold transition-colors ${
+                    active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground"
+                  }`}
+                >
+                  <Icon size={18} />
+                  <span>{lang === "sw" ? c.sw : c.en}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
         <label className="flex flex-col gap-1">
           <span className="text-sm font-semibold">{t("amount")} (KSh)</span>
-          <input required type="number" min="1" step="1" value={form.amount} onChange={(e) => setForm({ ...form, amount: Number(e.target.value) })} className="tap-target rounded-xl border border-input bg-card px-4 text-xl font-bold" />
+          <input required type="number" min="1" step="1" value={amount} onChange={(e) => setAmount(Number(e.target.value))} className="tap-target rounded-xl border border-input bg-card px-4 text-xl font-bold" />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-sm font-semibold">{t("description")}</span>
-          <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="tap-target rounded-xl border border-input bg-card px-4" />
+          <input value={description} onChange={(e) => setDescription(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-4" />
         </label>
         <div className="mt-2 flex gap-2">
           <button type="button" onClick={onClose} className="tap-target flex-1 rounded-2xl border border-border font-semibold">{t("cancel")}</button>
