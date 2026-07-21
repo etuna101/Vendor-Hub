@@ -2,6 +2,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
+import { Sprout, Scale, Handshake, type LucideIcon } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
@@ -38,9 +39,9 @@ function Landing() {
           </p>
         </div>
         <div className="card-soft grid gap-3 p-5">
-          <FeatureRow emoji="🧾" title={t("welcome1_title")} body={t("welcome1_body")} />
-          <FeatureRow emoji="📦" title={t("welcome2_title")} body={t("welcome2_body")} />
-          <FeatureRow emoji="🤝" title={t("welcome3_title")} body={t("welcome3_body")} />
+          <FeatureRow Icon={Sprout} title={t("welcome1_title")} body={t("welcome1_body")} />
+          <FeatureRow Icon={Scale} title={t("welcome2_title")} body={t("welcome2_body")} />
+          <FeatureRow Icon={Handshake} title={t("welcome3_title")} body={t("welcome3_body")} />
         </div>
         <div className="flex flex-col gap-3">
           <Link to="/auth/signup" className="tap-target inline-flex items-center justify-center rounded-2xl bg-primary px-6 text-base font-bold text-primary-foreground shadow-sm">
@@ -55,10 +56,12 @@ function Landing() {
   );
 }
 
-function FeatureRow({ emoji, title, body }: { emoji: string; title: string; body: string }) {
+function FeatureRow({ Icon, title, body }: { Icon: LucideIcon; title: string; body: string }) {
   return (
     <div className="flex gap-3">
-      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-secondary text-2xl">{emoji}</div>
+      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-secondary text-primary">
+        <Icon size={22} strokeWidth={1.8} />
+      </div>
       <div className="min-w-0">
         <div className="font-bold text-foreground">{title}</div>
         <div className="text-sm text-muted-foreground">{body}</div>
