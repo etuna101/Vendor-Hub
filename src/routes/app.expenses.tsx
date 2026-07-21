@@ -60,16 +60,20 @@ function ExpensesScreen() {
         </div>
       ) : (
         <div className="grid gap-2">
-          {expenses.map((e: any) => (
-            <div key={e.id} className="card-soft flex items-start justify-between p-4">
-              <div className="min-w-0">
-                <div className="font-bold capitalize">{e.category.replace("_", " ")}</div>
-                {e.description && <div className="text-sm text-muted-foreground">{e.description}</div>}
-                <div className="text-xs text-muted-foreground">{new Date(e.date).toLocaleDateString(lang === "sw" ? "sw-KE" : "en-KE")}</div>
+          {expenses.map((e: any) => {
+            const cat = CATEGORIES.find((c) => c.key === e.category);
+            const label = cat ? (lang === "sw" ? cat.sw : cat.en) : e.category;
+            return (
+              <div key={e.id} className="card-soft flex items-start justify-between p-4">
+                <div className="min-w-0">
+                  <div className="font-bold">{label}</div>
+                  {e.description && <div className="text-sm text-muted-foreground">{e.description}</div>}
+                  <div className="text-xs text-muted-foreground">{new Date(e.date).toLocaleDateString(lang === "sw" ? "sw-KE" : "en-KE")}</div>
+                </div>
+                <div className="text-lg font-extrabold">{formatKsh(Number(e.amount))}</div>
               </div>
-              <div className="text-lg font-extrabold">{formatKsh(Number(e.amount))}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
       {open && <AddExpense onClose={() => setOpen(false)} onSaved={() => { qc.invalidateQueries(); setOpen(false); }} />}
