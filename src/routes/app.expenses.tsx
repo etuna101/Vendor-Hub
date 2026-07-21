@@ -11,7 +11,16 @@ import { Modal } from "./app.inventory";
 
 export const Route = createFileRoute("/app/expenses")({ component: ExpensesScreen });
 
-const CATEGORIES = ["transport", "rent", "stock_purchase", "utilities", "other"] as const;
+import { Bus, Home, Users2, Store, MoreHorizontal } from "lucide-react";
+
+const CATEGORIES = [
+  { key: "transport", en: "Transport", sw: "Usafiri", icon: Bus },
+  { key: "rent", en: "Rent", sw: "Kodi", icon: Home },
+  { key: "wages", en: "Wages", sw: "Mishahara", icon: Users2 },
+  { key: "market_fee", en: "Market fee", sw: "Ada ya soko", icon: Store },
+  { key: "misc", en: "Other", sw: "Nyingine", icon: MoreHorizontal },
+] as const;
+type CategoryKey = (typeof CATEGORIES)[number]["key"];
 
 function ExpensesScreen() {
   const { t, lang } = useI18n();
