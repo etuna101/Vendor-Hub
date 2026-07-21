@@ -39,9 +39,9 @@ function Landing() {
           </p>
         </div>
         <div className="card-soft grid gap-3 p-5">
-          <FeatureRow emoji="🧾" title={t("welcome1_title")} body={t("welcome1_body")} />
-          <FeatureRow emoji="📦" title={t("welcome2_title")} body={t("welcome2_body")} />
-          <FeatureRow emoji="🤝" title={t("welcome3_title")} body={t("welcome3_body")} />
+          <FeatureRow Icon={Sprout} title={t("welcome1_title")} body={t("welcome1_body")} />
+          <FeatureRow Icon={Scale} title={t("welcome2_title")} body={t("welcome2_body")} />
+          <FeatureRow Icon={Handshake} title={t("welcome3_title")} body={t("welcome3_body")} />
         </div>
         <div className="flex flex-col gap-3">
           <Link to="/auth/signup" className="tap-target inline-flex items-center justify-center rounded-2xl bg-primary px-6 text-base font-bold text-primary-foreground shadow-sm">
