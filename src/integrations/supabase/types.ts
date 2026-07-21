@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_interactions: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          language: string
+          query: string
+          response: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind?: string
+          language?: string
+          query: string
+          response: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          language?: string
+          query?: string
+          response?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       credit_payments: {
         Row: {
           amount: number
@@ -329,6 +359,9 @@ export type Database = {
         | "stock_purchase"
         | "utilities"
         | "other"
+        | "wages"
+        | "market_fee"
+        | "misc"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -463,6 +496,9 @@ export const Constants = {
         "stock_purchase",
         "utilities",
         "other",
+        "wages",
+        "market_fee",
+        "misc",
       ],
     },
   },
