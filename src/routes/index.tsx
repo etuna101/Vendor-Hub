@@ -2,6 +2,7 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
+import { Sprout, Scale, Handshake, type LucideIcon } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
