@@ -213,6 +213,7 @@ export type Database = {
           credit_paid: boolean
           customer_id: string | null
           date: string
+          due_date: string | null
           id: string
           is_credit: boolean
           product_id: string | null
@@ -226,6 +227,7 @@ export type Database = {
           credit_paid?: boolean
           customer_id?: string | null
           date?: string
+          due_date?: string | null
           id?: string
           is_credit?: boolean
           product_id?: string | null
@@ -239,6 +241,7 @@ export type Database = {
           credit_paid?: boolean
           customer_id?: string | null
           date?: string
+          due_date?: string | null
           id?: string
           is_credit?: boolean
           product_id?: string | null
