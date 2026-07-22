@@ -79,6 +79,7 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const [qty, setQty] = useState<number>(1);
   const [customerId, setCustomerId] = useState<string>("");
   const [isCredit, setIsCredit] = useState(false);
+  const [dueDate, setDueDate] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   const { data: products = [] } = useQuery({
@@ -112,11 +113,14 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
       if (error) { setSaving(false); return toast.error(error.message); }
       cid = data.id;
     }
-    const { error } = await supabase.rpc("record_sale" as any, {
+    const { data: saleId, error } = await supabase.rpc("record_sale" as any, {
       _product_id: productId, _quantity: qty, _unit_price: unitPrice, _customer_id: cid, _is_credit: isCredit,
     } as any);
+    if (error) { setSaving(false); return toast.error(error.message); }
+    if (isCredit && dueDate && saleId) {
+      await supabase.from("sales").update({ due_date: dueDate } as any).eq("id", saleId as any);
+    }
     setSaving(false);
-    if (error) return toast.error(error.message);
     toast.success(lang === "en" ? "Sale recorded" : "Muuzo umehifadhiwa");
     onSaved();
   };
@@ -160,6 +164,10 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
               {!customerId && (
                 <input placeholder={lang === "en" ? "New customer name" : "Jina la mteja mpya"} value={newCustomer} onChange={(e) => setNewCustomer(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-4" />
               )}
+              <label className="flex flex-col gap-1">
+                <span className="text-sm font-semibold">{lang === "en" ? "Due date (optional)" : "Tarehe ya kulipa (hiari)"}</span>
+                <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-3" />
+              </label>
             </div>
           )}
           <div className="mt-2 flex gap-2">
