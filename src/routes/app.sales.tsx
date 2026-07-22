@@ -164,6 +164,10 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
               {!customerId && (
                 <input placeholder={lang === "en" ? "New customer name" : "Jina la mteja mpya"} value={newCustomer} onChange={(e) => setNewCustomer(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-4" />
               )}
+              <label className="flex flex-col gap-1">
+                <span className="text-sm font-semibold">{lang === "en" ? "Due date (optional)" : "Tarehe ya kulipa (hiari)"}</span>
+                <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-3" />
+              </label>
             </div>
           )}
           <div className="mt-2 flex gap-2">
