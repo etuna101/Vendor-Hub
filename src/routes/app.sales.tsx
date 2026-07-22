@@ -79,6 +79,7 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const [qty, setQty] = useState<number>(1);
   const [customerId, setCustomerId] = useState<string>("");
   const [isCredit, setIsCredit] = useState(false);
+  const [dueDate, setDueDate] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   const { data: products = [] } = useQuery({
