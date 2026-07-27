@@ -97,8 +97,9 @@ export const getDashboardInsight = createServerFn({ method: "POST" })
     const { supabase, userId } = context as any;
     const ctx = await buildVendorContext(supabase, userId);
     const summary = contextToSummary(ctx);
+    const sys = await loadSystemPrompt(supabase, data.language, "insight");
     const content = await callGateway([
-      { role: "system", content: systemPrompt(data.language, "insight") },
+      { role: "system", content: sys },
       { role: "user", content: `Vendor data summary:\n${summary}\n\nGive one short insight or recommendation for today.` },
     ]);
     await supabase.from("ai_interactions").insert({ user_id: userId, kind: "insight", query: "dashboard_insight", response: content, language: data.language });
