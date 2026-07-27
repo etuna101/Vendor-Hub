@@ -15,6 +15,21 @@ import { LanguageProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "@/components/ui/sonner";
 
+function removeLovableWatermark() {
+  const selectors = [
+    "#lovable-watermark",
+    ".lovable-watermark",
+    ".lovable-brand",
+    "[data-lovable-watermark]",
+    "img[alt*='lovable' i]",
+    "a[href*='lovable.dev' i]",
+    "[id*='lovable' i]",
+    "[class*='lovable' i]",
+  ];
+
+  document.querySelectorAll(selectors.join(",")).forEach((node) => node.remove());
+}
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -85,6 +100,22 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    removeLovableWatermark();
+
+    const observer = new MutationObserver(() => {
+      removeLovableWatermark();
+    });
+
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
