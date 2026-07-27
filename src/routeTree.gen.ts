@@ -10,9 +10,16 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as WelcomeRouteImport } from './routes/welcome'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminAdminsRouteImport } from './routes/admin.admins'
+import { Route as AdminAiLogRouteImport } from './routes/admin.ai-log'
+import { Route as AdminPromptsRouteImport } from './routes/admin.prompts'
+import { Route as AdminStatsRouteImport } from './routes/admin.stats'
+import { Route as AdminVendorsRouteImport } from './routes/admin.vendors'
 import { Route as AppIndexRouteImport } from './routes/app.index'
 import { Route as AppAssistantRouteImport } from './routes/app.assistant'
 import { Route as AppCreditRouteImport } from './routes/app.credit'
@@ -30,6 +37,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
@@ -44,6 +56,36 @@ const WelcomeRoute = WelcomeRouteImport.update({
   id: '/welcome',
   path: '/welcome',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAdminsRoute = AdminAdminsRouteImport.update({
+  id: '/admins',
+  path: '/admins',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAiLogRoute = AdminAiLogRouteImport.update({
+  id: '/ai-log',
+  path: '/ai-log',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminPromptsRoute = AdminPromptsRouteImport.update({
+  id: '/prompts',
+  path: '/prompts',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminStatsRoute = AdminStatsRouteImport.update({
+  id: '/stats',
+  path: '/stats',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminVendorsRoute = AdminVendorsRouteImport.update({
+  id: '/vendors',
+  path: '/vendors',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
@@ -103,9 +145,15 @@ const AuthSignupRoute = AuthSignupRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/welcome': typeof WelcomeRoute
+  '/admin/admins': typeof AdminAdminsRoute
+  '/admin/ai-log': typeof AdminAiLogRoute
+  '/admin/prompts': typeof AdminPromptsRoute
+  '/admin/stats': typeof AdminStatsRoute
+  '/admin/vendors': typeof AdminVendorsRoute
   '/app/assistant': typeof AppAssistantRoute
   '/app/credit': typeof AppCreditRoute
   '/app/dashboard': typeof AppDashboardRoute
@@ -116,12 +164,18 @@ export interface FileRoutesByFullPath {
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/signin': typeof AuthSigninRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/welcome': typeof WelcomeRoute
+  '/admin/admins': typeof AdminAdminsRoute
+  '/admin/ai-log': typeof AdminAiLogRoute
+  '/admin/prompts': typeof AdminPromptsRoute
+  '/admin/stats': typeof AdminStatsRoute
+  '/admin/vendors': typeof AdminVendorsRoute
   '/app/assistant': typeof AppAssistantRoute
   '/app/credit': typeof AppCreditRoute
   '/app/dashboard': typeof AppDashboardRoute
@@ -132,14 +186,21 @@ export interface FileRoutesByTo {
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/signin': typeof AuthSigninRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/admin': typeof AdminIndexRoute
   '/app': typeof AppIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/welcome': typeof WelcomeRoute
+  '/admin/admins': typeof AdminAdminsRoute
+  '/admin/ai-log': typeof AdminAiLogRoute
+  '/admin/prompts': typeof AdminPromptsRoute
+  '/admin/stats': typeof AdminStatsRoute
+  '/admin/vendors': typeof AdminVendorsRoute
   '/app/assistant': typeof AppAssistantRoute
   '/app/credit': typeof AppCreditRoute
   '/app/dashboard': typeof AppDashboardRoute
@@ -150,15 +211,22 @@ export interface FileRoutesById {
   '/auth/forgot': typeof AuthForgotRoute
   '/auth/signin': typeof AuthSigninRoute
   '/auth/signup': typeof AuthSignupRoute
+  '/admin/': typeof AdminIndexRoute
   '/app/': typeof AppIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/app'
     | '/auth'
     | '/welcome'
+    | '/admin/admins'
+    | '/admin/ai-log'
+    | '/admin/prompts'
+    | '/admin/stats'
+    | '/admin/vendors'
     | '/app/assistant'
     | '/app/credit'
     | '/app/dashboard'
@@ -169,12 +237,18 @@ export interface FileRouteTypes {
     | '/auth/forgot'
     | '/auth/signin'
     | '/auth/signup'
+    | '/admin/'
     | '/app/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
     | '/welcome'
+    | '/admin/admins'
+    | '/admin/ai-log'
+    | '/admin/prompts'
+    | '/admin/stats'
+    | '/admin/vendors'
     | '/app/assistant'
     | '/app/credit'
     | '/app/dashboard'
@@ -185,13 +259,20 @@ export interface FileRouteTypes {
     | '/auth/forgot'
     | '/auth/signin'
     | '/auth/signup'
+    | '/admin'
     | '/app'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/app'
     | '/auth'
     | '/welcome'
+    | '/admin/admins'
+    | '/admin/ai-log'
+    | '/admin/prompts'
+    | '/admin/stats'
+    | '/admin/vendors'
     | '/app/assistant'
     | '/app/credit'
     | '/app/dashboard'
@@ -202,11 +283,13 @@ export interface FileRouteTypes {
     | '/auth/forgot'
     | '/auth/signin'
     | '/auth/signup'
+    | '/admin/'
     | '/app/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   WelcomeRoute: typeof WelcomeRoute
@@ -219,6 +302,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -241,6 +331,48 @@ declare module '@tanstack/react-router' {
       fullPath: '/welcome'
       preLoaderRoute: typeof WelcomeRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/admins': {
+      id: '/admin/admins'
+      path: '/admins'
+      fullPath: '/admin/admins'
+      preLoaderRoute: typeof AdminAdminsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/ai-log': {
+      id: '/admin/ai-log'
+      path: '/ai-log'
+      fullPath: '/admin/ai-log'
+      preLoaderRoute: typeof AdminAiLogRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/prompts': {
+      id: '/admin/prompts'
+      path: '/prompts'
+      fullPath: '/admin/prompts'
+      preLoaderRoute: typeof AdminPromptsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/stats': {
+      id: '/admin/stats'
+      path: '/stats'
+      fullPath: '/admin/stats'
+      preLoaderRoute: typeof AdminStatsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/vendors': {
+      id: '/admin/vendors'
+      path: '/vendors'
+      fullPath: '/admin/vendors'
+      preLoaderRoute: typeof AdminVendorsRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/app/': {
       id: '/app/'
@@ -322,6 +454,26 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminAdminsRoute: typeof AdminAdminsRoute
+  AdminAiLogRoute: typeof AdminAiLogRoute
+  AdminPromptsRoute: typeof AdminPromptsRoute
+  AdminStatsRoute: typeof AdminStatsRoute
+  AdminVendorsRoute: typeof AdminVendorsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAdminsRoute: AdminAdminsRoute,
+  AdminAiLogRoute: AdminAiLogRoute,
+  AdminPromptsRoute: AdminPromptsRoute,
+  AdminStatsRoute: AdminStatsRoute,
+  AdminVendorsRoute: AdminVendorsRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 interface AppRouteChildren {
   AppAssistantRoute: typeof AppAssistantRoute
   AppCreditRoute: typeof AppCreditRoute
@@ -362,6 +514,7 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   WelcomeRoute: WelcomeRoute,

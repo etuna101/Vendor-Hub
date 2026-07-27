@@ -14,8 +14,9 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth";
 import { Toaster } from "@/components/ui/sonner";
+import logoUrl from "@/assets/vendorhub-logo.png";
 
-function removeLovableWatermark() {
+function replaceLovableWatermark() {
   const selectors = [
     "#lovable-watermark",
     ".lovable-watermark",
@@ -28,6 +29,19 @@ function removeLovableWatermark() {
   ];
 
   document.querySelectorAll(selectors.join(",")).forEach((node) => node.remove());
+
+  if (document.getElementById("vendorhub-watermark")) return;
+
+  const watermark = document.createElement("div");
+  watermark.id = "vendorhub-watermark";
+  watermark.setAttribute("aria-hidden", "true");
+  watermark.innerHTML = `
+    <div class="vendorhub-watermark-card">
+      <img src="${logoUrl}" alt="VendorHub" />
+    </div>
+  `;
+
+  document.body.appendChild(watermark);
 }
 
 function NotFoundComponent() {
@@ -102,10 +116,10 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   useEffect(() => {
-    removeLovableWatermark();
+    replaceLovableWatermark();
 
     const observer = new MutationObserver(() => {
-      removeLovableWatermark();
+      replaceLovableWatermark();
     });
 
     observer.observe(document.documentElement, {
