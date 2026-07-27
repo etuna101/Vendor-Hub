@@ -55,7 +55,10 @@ function contextToSummary(c: Awaited<ReturnType<typeof buildVendorContext>>) {
   ].join(" ");
 }
 
-function systemPrompt(lang: Lang, mode: "insight" | "chat") {
+async function loadSystemPrompt(supabase: any, lang: Lang, mode: "insight" | "chat") {
+  const key = `${mode}_${lang}`;
+  const { data } = await supabase.from("system_prompts").select("content").eq("key", key).maybeSingle();
+  if (data?.content) return data.content as string;
   const langLine = lang === "sw"
     ? "Respond only in simple Kiswahili that a Mama Mboga vendor can easily read."
     : "Respond only in simple English that a Mama Mboga vendor can easily read.";
@@ -94,8 +97,9 @@ export const getDashboardInsight = createServerFn({ method: "POST" })
     const { supabase, userId } = context as any;
     const ctx = await buildVendorContext(supabase, userId);
     const summary = contextToSummary(ctx);
+    const sys = await loadSystemPrompt(supabase, data.language, "insight");
     const content = await callGateway([
-      { role: "system", content: systemPrompt(data.language, "insight") },
+      { role: "system", content: sys },
       { role: "user", content: `Vendor data summary:\n${summary}\n\nGive one short insight or recommendation for today.` },
     ]);
     await supabase.from("ai_interactions").insert({ user_id: userId, kind: "insight", query: "dashboard_insight", response: content, language: data.language });
@@ -114,8 +118,9 @@ export const aiChat = createServerFn({ method: "POST" })
     const { supabase, userId } = context as any;
     const ctx = await buildVendorContext(supabase, userId);
     const summary = contextToSummary(ctx);
+    const sys = await loadSystemPrompt(supabase, data.language, "chat");
     const content = await callGateway([
-      { role: "system", content: systemPrompt(data.language, "chat") },
+      { role: "system", content: sys },
       { role: "user", content: `Vendor data summary:\n${summary}\n\nVendor question: ${data.question}` },
     ]);
     await supabase.from("ai_interactions").insert({ user_id: userId, kind: "chat", query: data.question, response: content, language: data.language });

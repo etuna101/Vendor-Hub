@@ -306,6 +306,33 @@ export type Database = {
           },
         ]
       }
+      system_prompts: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          key: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          key: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -332,6 +359,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_platform_stats: { Args: never; Returns: Json }
+      admin_vendor_overview: {
+        Args: never
+        Returns: {
+          business_name: string
+          created_at: string
+          full_name: string
+          phone: string
+          sales_count: number
+          total_sales: number
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
