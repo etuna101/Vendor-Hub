@@ -118,8 +118,9 @@ export const aiChat = createServerFn({ method: "POST" })
     const { supabase, userId } = context as any;
     const ctx = await buildVendorContext(supabase, userId);
     const summary = contextToSummary(ctx);
+    const sys = await loadSystemPrompt(supabase, data.language, "chat");
     const content = await callGateway([
-      { role: "system", content: systemPrompt(data.language, "chat") },
+      { role: "system", content: sys },
       { role: "user", content: `Vendor data summary:\n${summary}\n\nVendor question: ${data.question}` },
     ]);
     await supabase.from("ai_interactions").insert({ user_id: userId, kind: "chat", query: data.question, response: content, language: data.language });
