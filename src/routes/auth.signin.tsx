@@ -19,9 +19,18 @@ function SignIn() {
     e.preventDefault();
     setLoading(true);
     const { error } = await signIn({ phone, password });
+    if (error) { setLoading(false); return toast.error(error); }
+    // Route based on role
+    const { supabase } = await import("@/integrations/supabase/client");
+    const { data: userData } = await supabase.auth.getUser();
+    const uid = userData.user?.id;
+    let isAdmin = false;
+    if (uid) {
+      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
+      isAdmin = (roles ?? []).some((r: any) => r.role === "admin");
+    }
     setLoading(false);
-    if (error) return toast.error(error);
-    nav({ to: "/app/dashboard" });
+    nav({ to: isAdmin ? "/admin" : "/app/dashboard" });
   };
 
   return (
