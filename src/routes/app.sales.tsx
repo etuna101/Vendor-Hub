@@ -90,22 +90,26 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const [dueDate, setDueDate] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
+  const { online, refresh } = useOffline();
+
   const { data: products = [] } = useQuery({
     queryKey: ["products-active"],
-    queryFn: async () => {
-      const { data } = await supabase.from("products").select("id, name, unit, selling_price, current_stock").eq("is_active", true).order("name");
-      return data ?? [];
-    },
+    queryFn: () =>
+      offlineList<any>("products", async () => {
+        const { data } = await supabase.from("products").select("*").eq("is_active", true).order("name");
+        return data ?? [];
+      }, (p) => p.is_active !== false).then((rows) => rows.sort((a, b) => String(a.name).localeCompare(String(b.name)))),
   });
   const { data: customers = [] } = useQuery({
     queryKey: ["customers"],
+    enabled: online,
     queryFn: async () => {
       const { data } = await supabase.from("customers").select("id, name").order("name");
       return data ?? [];
     },
   });
 
-  const product = useMemo(() => products.find((p) => p.id === productId), [products, productId]);
+  const product = useMemo(() => products.find((p: any) => p.id === productId), [products, productId]);
   const unitPrice = product ? Number(product.selling_price) : 0;
   const total = qty * unitPrice;
 
@@ -114,24 +118,31 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
     e.preventDefault();
     if (!product) return toast.error("Pick a product");
     setSaving(true);
-    let cid: string | null = customerId || null;
-    if (isCredit && !cid && newCustomer.trim()) {
-      const { data: u } = await supabase.auth.getUser();
-      const { data, error } = await supabase.from("customers").insert({ name: newCustomer.trim(), user_id: u.user!.id }).select("id").single();
-      if (error) { setSaving(false); return toast.error(error.message); }
-      cid = data.id;
+    try {
+      const res = await recordSaleOfflineFirst({
+        product_id: productId,
+        product_name: product.name,
+        quantity: qty,
+        unit_price: unitPrice,
+        customer_id: customerId || null,
+        new_customer_name: newCustomer.trim() || undefined,
+        is_credit: isCredit,
+        due_date: dueDate || null,
+      });
+      await refresh();
+      toast.success(
+        res.queued
+          ? lang === "en" ? "Saved offline — will sync" : "Imehifadhiwa — itasawazishwa"
+          : lang === "en" ? "Sale recorded" : "Muuzo umehifadhiwa",
+      );
+      onSaved();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed");
+    } finally {
+      setSaving(false);
     }
-    const { data: saleId, error } = await supabase.rpc("record_sale" as any, {
-      _product_id: productId, _quantity: qty, _unit_price: unitPrice, _customer_id: cid, _is_credit: isCredit,
-    } as any);
-    if (error) { setSaving(false); return toast.error(error.message); }
-    if (isCredit && dueDate && saleId) {
-      await supabase.from("sales").update({ due_date: dueDate } as any).eq("id", saleId as any);
-    }
-    setSaving(false);
-    toast.success(lang === "en" ? "Sale recorded" : "Muuzo umehifadhiwa");
-    onSaved();
   };
+
 
   return (
     <Modal onClose={onClose} title={t("newSale")}>
