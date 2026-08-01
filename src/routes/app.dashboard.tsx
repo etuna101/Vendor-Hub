@@ -7,6 +7,8 @@ import { useI18n } from "@/lib/i18n";
 import { QuickFilterBar, getPeriodRange, type PeriodKey } from "@/components/QuickFilterBar";
 import { formatKsh } from "@/lib/format";
 import { getDashboardInsight } from "@/lib/ai.functions";
+import { SyncReviewCard } from "@/components/SyncReviewCard";
+
 import { AlertTriangle, Coins, HandCoins, ShoppingCart, Wallet, Receipt, BarChart3, Users, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/app/dashboard")({ component: Dashboard });
@@ -64,7 +66,10 @@ function Dashboard() {
       </div>
       <QuickFilterBar value={period} onChange={setPeriod} />
 
+      <SyncReviewCard />
+
       <InsightCard loading={insightLoading} text={insightData?.insight} lang={lang} />
+
 
       <div className="grid grid-cols-2 gap-3">
         <Stat onClick={() => nav({ to: "/app/sales" })} icon={<ShoppingCart size={18} />} label={t("totalSales")} value={formatKsh(data?.sales ?? 0)} tone="primary" />

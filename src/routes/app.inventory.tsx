@@ -3,10 +3,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { offlineList, recordRestockOfflineFirst } from "@/lib/offline/actions";
+import { useOffline } from "@/lib/offline/OfflineProvider";
 import { useI18n } from "@/lib/i18n";
 import { formatKsh, formatQty } from "@/lib/format";
 import { toast } from "sonner";
 import { Plus, Package, AlertTriangle, PackagePlus } from "lucide-react";
+
 
 const search = z.object({ low: z.coerce.number().optional() });
 
@@ -24,12 +27,14 @@ function Inventory() {
 
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("products").select("*").eq("is_active", true).order("name");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () =>
+      offlineList<any>("products", async () => {
+        const { data, error } = await supabase.from("products").select("*").eq("is_active", true).order("name");
+        if (error) throw error;
+        return data ?? [];
+      }, (p) => p.is_active !== false),
   });
+
 
   const filtered = low ? products.filter((p) => Number(p.current_stock) <= Number(p.low_stock_threshold)) : products;
 
@@ -136,19 +141,26 @@ function AddProductDialog({ onClose, onSaved }: { onClose: () => void; onSaved: 
 }
 
 function RestockDialog({ productId, product, onClose, onSaved }: { productId: string; product: any; onClose: () => void; onSaved: () => void }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const { refresh } = useOffline();
   const [qty, setQty] = useState(1);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const { error } = await supabase.rpc("record_restock" as any, { _product_id: productId, _quantity: qty, _note: note || null } as any);
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("Stock updated");
-    onSaved();
+    try {
+      const res = await recordRestockOfflineFirst({ product_id: productId, quantity: qty, note: note || undefined });
+      await refresh();
+      toast.success(res.queued ? (lang === "sw" ? "Imehifadhiwa — itasawazishwa" : "Saved — will sync") : "Stock updated");
+      onSaved();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed");
+    } finally {
+      setSaving(false);
+    }
   };
+
   return (
     <Modal onClose={onClose} title={`${t("restock")}: ${product.name}`}>
       <form onSubmit={submit} className="flex flex-col gap-3">

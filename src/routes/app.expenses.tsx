@@ -2,12 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { offlineList, recordExpenseOfflineFirst } from "@/lib/offline/actions";
+import { useOffline } from "@/lib/offline/OfflineProvider";
 import { useI18n } from "@/lib/i18n";
 import { QuickFilterBar, getPeriodRange, type PeriodKey } from "@/components/QuickFilterBar";
 import { formatKsh } from "@/lib/format";
 import { Plus, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "./app.inventory";
+
 
 export const Route = createFileRoute("/app/expenses")({ component: ExpensesScreen });
 
@@ -31,13 +34,18 @@ function ExpensesScreen() {
 
   const { data: expenses = [] } = useQuery({
     queryKey: ["expenses", period],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("expenses").select("*").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () =>
+      offlineList<any>("expenses", async () => {
+        const { data, error } = await supabase.from("expenses").select("*").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date", { ascending: false });
+        if (error) throw error;
+        return data ?? [];
+      }, (r) => {
+        const d = new Date(r.date).getTime();
+        return d >= from.getTime() && d <= to.getTime();
+      }).then((rows) => rows.sort((a, b) => +new Date(b.date) - +new Date(a.date))),
   });
-  const total = expenses.reduce((s, r) => s + Number(r.amount), 0);
+  const total = expenses.reduce((s: number, r: any) => s + Number(r.amount), 0);
+
 
   return (
     <div className="flex flex-col gap-4">
@@ -83,20 +91,26 @@ function ExpensesScreen() {
 
 function AddExpense({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const { t, lang } = useI18n();
-  const [category, setCategory] = useState<CategoryKey>("stock_purchase" as CategoryKey);
+  const { refresh } = useOffline();
+  const [category, setCategory] = useState<CategoryKey>("transport" as CategoryKey);
   const [amount, setAmount] = useState(0);
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("expenses").insert({ category, amount, description, user_id: u.user!.id });
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("Saved");
-    onSaved();
+    try {
+      const res = await recordExpenseOfflineFirst({ category, amount, description });
+      await refresh();
+      toast.success(res.queued ? (lang === "sw" ? "Imehifadhiwa — itasawazishwa" : "Saved — will sync") : "Saved");
+      onSaved();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed");
+    } finally {
+      setSaving(false);
+    }
   };
+
   return (
     <Modal onClose={onClose} title={t("addExpense")}>
       <form onSubmit={submit} className="flex flex-col gap-3">
