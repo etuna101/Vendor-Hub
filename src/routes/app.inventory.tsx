@@ -3,10 +3,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
+import { offlineList, recordRestockOfflineFirst } from "@/lib/offline/actions";
+import { useOffline } from "@/lib/offline/OfflineProvider";
 import { useI18n } from "@/lib/i18n";
 import { formatKsh, formatQty } from "@/lib/format";
 import { toast } from "sonner";
 import { Plus, Package, AlertTriangle, PackagePlus } from "lucide-react";
+
 
 const search = z.object({ low: z.coerce.number().optional() });
 
