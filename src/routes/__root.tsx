@@ -13,8 +13,11 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth";
+import { OfflineProvider } from "@/lib/offline/OfflineProvider";
+import { registerAppServiceWorker } from "@/lib/pwa/register-sw";
 import { Toaster } from "@/components/ui/sonner";
 import logoUrl from "@/assets/vendorhub-logo.png";
+
 
 function replaceLovableWatermark() {
   const selectors = [
