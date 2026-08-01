@@ -150,6 +150,13 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
         <p className="text-muted-foreground">{t("empty_products")}</p>
       ) : (
         <form onSubmit={submit} className="flex flex-col gap-3">
+          {!online && (
+            <p className="flex items-center gap-2 rounded-xl bg-accent/20 p-3 text-sm font-semibold">
+              <CloudOff size={16} />
+              {lang === "en" ? "No internet — this sale will be saved and synced later." : "Hakuna mtandao — muuzo huu utahifadhiwa na kusawazishwa baadaye."}
+            </p>
+          )}
+
           <label className="flex flex-col gap-1">
             <span className="text-sm font-semibold">{t("product")}</span>
             <select required value={productId} onChange={(e) => setProductId(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-3">
