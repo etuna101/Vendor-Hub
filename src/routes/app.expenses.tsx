@@ -91,20 +91,26 @@ function ExpensesScreen() {
 
 function AddExpense({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
   const { t, lang } = useI18n();
-  const [category, setCategory] = useState<CategoryKey>("stock_purchase" as CategoryKey);
+  const { refresh } = useOffline();
+  const [category, setCategory] = useState<CategoryKey>("transport" as CategoryKey);
   const [amount, setAmount] = useState(0);
   const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("expenses").insert({ category, amount, description, user_id: u.user!.id });
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("Saved");
-    onSaved();
+    try {
+      const res = await recordExpenseOfflineFirst({ category, amount, description });
+      await refresh();
+      toast.success(res.queued ? (lang === "sw" ? "Imehifadhiwa — itasawazishwa" : "Saved — will sync") : "Saved");
+      onSaved();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed");
+    } finally {
+      setSaving(false);
+    }
   };
+
   return (
     <Modal onClose={onClose} title={t("addExpense")}>
       <form onSubmit={submit} className="flex flex-col gap-3">
