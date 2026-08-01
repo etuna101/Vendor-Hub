@@ -34,13 +34,18 @@ function ExpensesScreen() {
 
   const { data: expenses = [] } = useQuery({
     queryKey: ["expenses", period],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("expenses").select("*").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () =>
+      offlineList<any>("expenses", async () => {
+        const { data, error } = await supabase.from("expenses").select("*").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date", { ascending: false });
+        if (error) throw error;
+        return data ?? [];
+      }, (r) => {
+        const d = new Date(r.date).getTime();
+        return d >= from.getTime() && d <= to.getTime();
+      }).then((rows) => rows.sort((a, b) => +new Date(b.date) - +new Date(a.date))),
   });
-  const total = expenses.reduce((s, r) => s + Number(r.amount), 0);
+  const total = expenses.reduce((s: number, r: any) => s + Number(r.amount), 0);
+
 
   return (
     <div className="flex flex-col gap-4">
