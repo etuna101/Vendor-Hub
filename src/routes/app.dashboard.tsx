@@ -64,7 +64,10 @@ function Dashboard() {
       </div>
       <QuickFilterBar value={period} onChange={setPeriod} />
 
+      <SyncReviewCard />
+
       <InsightCard loading={insightLoading} text={insightData?.insight} lang={lang} />
+
 
       <div className="grid grid-cols-2 gap-3">
         <Stat onClick={() => nav({ to: "/app/sales" })} icon={<ShoppingCart size={18} />} label={t("totalSales")} value={formatKsh(data?.sales ?? 0)} tone="primary" />
