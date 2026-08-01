@@ -2,12 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { offlineList, recordSaleOfflineFirst } from "@/lib/offline/actions";
+import { useOffline } from "@/lib/offline/OfflineProvider";
 import { useI18n } from "@/lib/i18n";
 import { QuickFilterBar, getPeriodRange, type PeriodKey } from "@/components/QuickFilterBar";
 import { formatKsh, formatQty } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, ShoppingCart } from "lucide-react";
+import { Plus, ShoppingCart, CloudOff } from "lucide-react";
 import { Modal } from "./app.inventory";
+
 
 export const Route = createFileRoute("/app/sales")({ component: SalesScreen });
 
