@@ -24,12 +24,14 @@ function Inventory() {
 
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("products").select("*").eq("is_active", true).order("name");
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () =>
+      offlineList<any>("products", async () => {
+        const { data, error } = await supabase.from("products").select("*").eq("is_active", true).order("name");
+        if (error) throw error;
+        return data ?? [];
+      }, (p) => p.is_active !== false),
   });
+
 
   const filtered = low ? products.filter((p) => Number(p.current_stock) <= Number(p.low_stock_threshold)) : products;
 
