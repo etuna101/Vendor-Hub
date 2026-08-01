@@ -23,14 +23,19 @@ function SalesScreen() {
 
   const { data: sales = [] } = useQuery({
     queryKey: ["sales", period],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("sales").select("*, customers(name)").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () =>
+      offlineList<any>("sales", async () => {
+        const { data, error } = await supabase.from("sales").select("*, customers(name)").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date", { ascending: false });
+        if (error) throw error;
+        return data ?? [];
+      }, (r) => {
+        const d = new Date(r.date).getTime();
+        return d >= from.getTime() && d <= to.getTime();
+      }).then((rows) => rows.sort((a, b) => +new Date(b.date) - +new Date(a.date))),
   });
 
-  const total = sales.reduce((s, r) => s + Number(r.total), 0);
+  const total = sales.reduce((s: number, r: any) => s + Number(r.total), 0);
+
 
   return (
     <div className="flex flex-col gap-4">
