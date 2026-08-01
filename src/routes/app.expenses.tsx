@@ -2,12 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { offlineList, recordExpenseOfflineFirst } from "@/lib/offline/actions";
+import { useOffline } from "@/lib/offline/OfflineProvider";
 import { useI18n } from "@/lib/i18n";
 import { QuickFilterBar, getPeriodRange, type PeriodKey } from "@/components/QuickFilterBar";
 import { formatKsh } from "@/lib/format";
 import { Plus, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "./app.inventory";
+
 
 export const Route = createFileRoute("/app/expenses")({ component: ExpensesScreen });
 
