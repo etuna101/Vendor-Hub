@@ -182,18 +182,25 @@ function PaymentDialog({ row, onClose, onSaved }: { row: CreditRow; onClose: () 
     if (!amount || amount <= 0) return toast.error(lang === "en" ? "Enter an amount" : "Weka kiasi");
     const capped = Math.min(amount, row.balance);
     setSaving(true);
-    const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("credit_payments").insert({
-      user_id: u.user!.id, sale_id: row.id, amount: capped,
-    } as any);
-    if (error) { setSaving(false); return toast.error(error.message); }
-    if (capped >= row.balance) {
-      await supabase.from("sales").update({ credit_paid: true } as any).eq("id", row.id);
+    try {
+      const res = await recordCreditPaymentOfflineFirst({
+        sale_id: row.id,
+        amount: capped,
+        mark_paid: capped >= row.balance,
+      });
+      toast.success(
+        res.queued
+          ? lang === "en" ? "Saved offline — will sync" : "Imehifadhiwa — itasawazishwa"
+          : lang === "en" ? "Payment recorded" : "Malipo yamehifadhiwa",
+      );
+      onSaved();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
-    toast.success(lang === "en" ? "Payment recorded" : "Malipo yamehifadhiwa");
-    onSaved();
   };
+
 
   return (
     <Modal onClose={onClose} title={t("partialPay")}>
