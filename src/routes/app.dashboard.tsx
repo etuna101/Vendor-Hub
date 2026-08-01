@@ -7,6 +7,8 @@ import { useI18n } from "@/lib/i18n";
 import { QuickFilterBar, getPeriodRange, type PeriodKey } from "@/components/QuickFilterBar";
 import { formatKsh } from "@/lib/format";
 import { getDashboardInsight } from "@/lib/ai.functions";
+import { SyncReviewCard } from "@/components/SyncReviewCard";
+
 import { AlertTriangle, Coins, HandCoins, ShoppingCart, Wallet, Receipt, BarChart3, Users, Sparkles } from "lucide-react";
 
 export const Route = createFileRoute("/app/dashboard")({ component: Dashboard });
