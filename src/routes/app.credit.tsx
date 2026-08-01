@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { recordCreditPaymentOfflineFirst } from "@/lib/offline/actions";
+
 import { useI18n } from "@/lib/i18n";
 import { formatKsh } from "@/lib/format";
 import { HandCoins, CheckCircle2, AlertTriangle, Coins } from "lucide-react";
