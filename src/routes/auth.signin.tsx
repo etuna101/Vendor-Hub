@@ -5,12 +5,18 @@ import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/auth/signin")({ component: SignIn });
+export const Route = createFileRoute("/auth/signin")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    next: typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : undefined,
+  }),
+  component: SignIn,
+});
 
 function SignIn() {
   const { t } = useI18n();
   const { signIn } = useAuth();
   const nav = useNavigate();
+  const { next } = Route.useSearch();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
