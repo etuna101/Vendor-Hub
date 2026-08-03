@@ -26,6 +26,11 @@ function SignIn() {
     setLoading(true);
     const { error } = await signIn({ phone, password });
     if (error) { setLoading(false); return toast.error(error); }
+    if (next) {
+      setLoading(false);
+      window.location.href = next;
+      return;
+    }
     // Route based on role
     const { supabase } = await import("@/integrations/supabase/client");
     const { data: userData } = await supabase.auth.getUser();
