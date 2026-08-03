@@ -1,0 +1,184 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://xqjcvilgexoqkdhfpvfh.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "mama-mboga-s-helper",
+      "version": "0.1.0",
+      "title": "Mama Mboga's Helper"
+    },
+    "tools": [
+      {
+        "name": "business_summary",
+        "title": "Business summary",
+        "description": "Summarise the signed-in vendor's sales, expenses, estimated profit and low-stock count over a recent period.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "days": {
+              "description": "Number of past days to summarise (default 30).",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 365
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_products",
+        "title": "List products",
+        "description": "List the signed-in vendor's active products with stock levels and prices.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "low_stock_only": {
+              "description": "When true, only return products at or below their low-stock threshold.",
+              "type": "boolean"
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "outstanding_credit",
+        "title": "Outstanding credit",
+        "description": "List unpaid customer credit ('deni') for the signed-in vendor, including overdue balances.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "overdue_only": {
+              "description": "When true, only return credit past its due date.",
+              "type": "boolean"
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "record_sale",
+        "title": "Record a sale",
+        "description": "Record a sale for the signed-in vendor. Checks stock, decrements inventory and logs the sale atomically.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "product_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "Product id from list_products."
+            },
+            "quantity": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Quantity sold in the product's unit."
+            },
+            "unit_price": {
+              "description": "Price per unit in KES. Defaults to the product's selling price.",
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "is_credit": {
+              "description": "True when the customer is buying on credit (deni).",
+              "type": "boolean"
+            },
+            "customer_id": {
+              "description": "Customer id, required for credit sales.",
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+            }
+          },
+          "required": [
+            "product_id",
+            "quantity"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "record_expense",
+        "title": "Record an expense",
+        "description": "Record a business expense for the signed-in vendor.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "amount": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "description": "Expense amount in KES."
+            },
+            "category": {
+              "type": "string",
+              "enum": [
+                "transport",
+                "rent",
+                "wages",
+                "market_fee",
+                "misc",
+                "stock_purchase",
+                "utilities",
+                "other"
+              ],
+              "description": "Expense category."
+            },
+            "note": {
+              "description": "Optional short note.",
+              "type": "string",
+              "maxLength": 200
+            },
+            "date": {
+              "description": "ISO date (YYYY-MM-DD). Defaults to today.",
+              "type": "string"
+            }
+          },
+          "required": [
+            "amount",
+            "category"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
