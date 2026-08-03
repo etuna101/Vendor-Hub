@@ -6,9 +6,10 @@ import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/auth/signin")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    next: typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>): { next?: string } => {
+    const next = typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : undefined;
+    return next ? { next } : {};
+  },
   component: SignIn,
 });
 
