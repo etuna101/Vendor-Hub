@@ -6,7 +6,10 @@ import { recordCreditPaymentOfflineFirst } from "@/lib/offline/actions";
 
 import { useI18n } from "@/lib/i18n";
 import { formatKsh } from "@/lib/format";
-import { HandCoins, CheckCircle2, AlertTriangle, Coins } from "lucide-react";
+import {
+  CreditCard, CheckCircle2, AlertTriangle, Coins, Users, ShoppingBag,
+  Search, BellRing, MessageSquare, Mail, Smartphone,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "./app.inventory";
 
@@ -24,21 +27,36 @@ type CreditRow = {
   paid: number;
   balance: number;
   overdue: boolean;
+  daysDiff: number | null;
 };
+
+function dueLabel(row: CreditRow, lang: string) {
+  if (row.daysDiff === null) return null;
+  const d = row.daysDiff;
+  if (d === 0) return { text: lang === "en" ? "Due today" : "Inalipwa leo", tone: "warn" as const };
+  if (d < 0)
+    return {
+      text: lang === "en" ? `Overdue by ${Math.abs(d)} day${Math.abs(d) === 1 ? "" : "s"}` : `Imechelewa siku ${Math.abs(d)}`,
+      tone: "danger" as const,
+    };
+  return { text: lang === "en" ? `Due in ${d} day${d === 1 ? "" : "s"}` : `Inalipwa baada ya siku ${d}`, tone: "ok" as const };
+}
 
 function CreditScreen() {
   const { t, lang } = useI18n();
   const qc = useQueryClient();
   const [payingFor, setPayingFor] = useState<CreditRow | null>(null);
+  const [remindFor, setRemindFor] = useState<CreditRow | null>(null);
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState<"all" | "owing" | "cleared">("all");
 
   const { data: rows = [] } = useQuery<CreditRow[]>({
-    queryKey: ["credit-sales"],
+    queryKey: ["credit-sales-all"],
     queryFn: async () => {
       const { data: sales, error } = await supabase
         .from("sales")
         .select("id, product_name_snapshot, total, date, due_date, credit_paid, customer_id, customers(name, phone)")
         .eq("is_credit", true)
-        .eq("credit_paid", false)
         .order("date", { ascending: false });
       if (error) throw error;
       const ids = (sales ?? []).map((s: any) => s.id);
@@ -52,16 +70,35 @@ function CreditScreen() {
       const today = new Date(); today.setHours(0, 0, 0, 0);
       return (sales ?? []).map((s: any) => {
         const paid = paidBySale.get(s.id) ?? 0;
-        const balance = Math.max(0, Number(s.total) - paid);
-        const overdue = !!s.due_date && new Date(s.due_date) < today && balance > 0;
-        return { ...s, paid, balance, overdue } as CreditRow;
+        const balance = s.credit_paid ? 0 : Math.max(0, Number(s.total) - paid);
+        let daysDiff: number | null = null;
+        if (s.due_date) {
+          const due = new Date(s.due_date); due.setHours(0, 0, 0, 0);
+          daysDiff = Math.round((due.getTime() - today.getTime()) / 86400000);
+        }
+        const overdue = !s.credit_paid && daysDiff !== null && daysDiff < 0 && balance > 0;
+        return { ...s, paid, balance, overdue, daysDiff } as CreditRow;
       });
     },
   });
 
-  const outstanding = rows.reduce((s, r) => s + r.balance, 0);
-  const overdueCount = rows.filter((r) => r.overdue).length;
-  const customersOwing = new Set(rows.filter((r) => r.customer_id).map((r) => r.customer_id)).size;
+  const owing = rows.filter((r) => !r.credit_paid && r.balance > 0);
+  const cleared = rows.filter((r) => r.credit_paid || r.balance === 0);
+  const outstanding = owing.reduce((s, r) => s + r.balance, 0);
+  const overdueCount = owing.filter((r) => r.overdue).length;
+  const customersOwing = new Set(owing.map((r) => r.customer_id ?? r.id)).size;
+
+  const visible = useMemo(() => {
+    const base = tab === "owing" ? owing : tab === "cleared" ? cleared : rows;
+    const q = search.trim().toLowerCase();
+    if (!q) return base;
+    return base.filter(
+      (r) =>
+        (r.customers?.name ?? "").toLowerCase().includes(q) ||
+        (r.customers?.phone ?? "").toLowerCase().includes(q) ||
+        r.product_name_snapshot.toLowerCase().includes(q),
+    );
+  }, [tab, rows, owing, cleared, search]);
 
   const markPaid = async (r: CreditRow) => {
     if (r.balance > 0) {
@@ -81,85 +118,148 @@ function CreditScreen() {
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-extrabold">{t("credit")}</h1>
 
-      <div className="card-soft bg-danger p-5 text-danger-foreground">
-        <div className="text-sm font-semibold opacity-90">{t("outstandingCredit")}</div>
-        <div className="mt-1 text-3xl font-extrabold">{formatKsh(outstanding)}</div>
+      {/* Summary dashboard card */}
+      <section className="card-soft overflow-hidden bg-foreground p-5 text-background">
+        <div className="text-xs font-bold uppercase tracking-widest text-background/70">
+          {lang === "en" ? "Total outstanding" : "Deni jumla"}
+        </div>
+        <div className="mt-1 text-4xl font-extrabold text-accent">
+          KES {Math.round(outstanding).toLocaleString("en-KE")}
+        </div>
+        <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-background/10 p-3">
+          <Metric icon={<Users size={16} />} value={customersOwing} label={lang === "en" ? "owing" : "wanadai"} />
+          <Metric icon={<ShoppingBag size={16} />} value={owing.length} label={lang === "en" ? "sales" : "mauzo"} />
+          <Metric icon={<CreditCard size={16} />} value={cleared.length} label={lang === "en" ? "cleared" : "zilizolipwa"} />
+        </div>
+        {overdueCount > 0 && (
+          <div className="mt-3 flex items-center gap-2 rounded-xl bg-danger px-3 py-2 text-sm font-bold text-danger-foreground">
+            <AlertTriangle size={16} />
+            {lang === "en"
+              ? `${overdueCount} credit record${overdueCount === 1 ? "" : "s"} past due — send a reminder`
+              : `Rekodi ${overdueCount} za deni zimechelewa — tuma kikumbusho`}
+          </div>
+        )}
+      </section>
+
+      {/* Search + filters */}
+      <div className="flex flex-col gap-2">
+        <div className="relative">
+          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={lang === "en" ? "Search customers..." : "Tafuta wateja..."}
+            className="tap-target w-full rounded-2xl border border-input bg-card pl-10 pr-4 text-base"
+          />
+        </div>
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {([
+            ["all", lang === "en" ? "All" : "Zote", rows.length],
+            ["owing", lang === "en" ? "Owing" : "Wanadai", owing.length],
+            ["cleared", lang === "en" ? "Cleared" : "Zilizolipwa", cleared.length],
+          ] as const).map(([key, label, count]) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold ${
+                tab === key ? "bg-primary text-primary-foreground" : "border border-border bg-card text-muted-foreground"
+              }`}
+            >
+              {label} ({count})
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <div className="card-soft p-4">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-            <Coins size={16} /> <span>{t("customersOwing")}</span>
+      {visible.length === 0 ? (
+        <div className="card-soft flex flex-col items-center gap-3 p-10 text-center">
+          <div className="grid h-16 w-16 place-items-center rounded-full bg-secondary">
+            <CreditCard className="text-primary" />
           </div>
-          <div className="mt-1 text-xl font-extrabold">{customersOwing}</div>
-        </div>
-        <div className={`card-soft p-4 ${overdueCount > 0 ? "bg-warning text-warning-foreground" : ""}`}>
-          <div className={`flex items-center gap-1.5 text-xs font-semibold ${overdueCount > 0 ? "opacity-90" : "text-muted-foreground"}`}>
-            <AlertTriangle size={16} /> <span>{lang === "en" ? "Overdue" : "Zilizochelewa"}</span>
-          </div>
-          <div className="mt-1 text-xl font-extrabold">{overdueCount}</div>
-        </div>
-      </div>
-
-      {rows.length === 0 ? (
-        <div className="card-soft flex flex-col items-center gap-3 p-8 text-center">
-          <div className="grid h-16 w-16 place-items-center rounded-full bg-secondary"><HandCoins className="text-primary" /></div>
-          <p className="text-muted-foreground">{t("empty_credit")}</p>
+          <h2 className="text-lg font-extrabold">{lang === "en" ? "No credit records" : "Hakuna rekodi za deni"}</h2>
+          <p className="max-w-xs text-sm text-muted-foreground">
+            {lang === "en"
+              ? "Credit records will appear when customers buy on credit"
+              : "Rekodi za deni zitaonekana wateja wanapochukua kwa deni"}
+          </p>
         </div>
       ) : (
         <div className="grid gap-2">
-          {rows.map((s) => (
-            <div key={s.id} className={`card-soft p-4 ${s.overdue ? "border-danger" : ""}`}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-bold">{s.customers?.name ?? (lang === "en" ? "Unknown customer" : "Mteja hajulikani")}</span>
-                    {s.overdue && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-danger px-2 py-0.5 text-xs font-bold text-danger-foreground">
-                        <AlertTriangle size={12} /> {lang === "en" ? "Overdue" : "Imechelewa"}
-                      </span>
-                    )}
-                    {s.paid > 0 && s.balance > 0 && (
-                      <span className="rounded-full bg-warning px-2 py-0.5 text-xs font-bold text-warning-foreground">
-                        {lang === "en" ? "Partial" : "Sehemu"}
-                      </span>
+          {visible.map((s) => {
+            const badge = !s.credit_paid && s.balance > 0 ? dueLabel(s, lang) : null;
+            return (
+              <div key={s.id} className={`card-soft p-4 ${s.overdue ? "border-danger" : ""}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-bold">{s.customers?.name ?? (lang === "en" ? "Unknown customer" : "Mteja hajulikani")}</span>
+                      {badge && (
+                        <span
+                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${
+                            badge.tone === "danger"
+                              ? "bg-danger text-danger-foreground"
+                              : badge.tone === "warn"
+                                ? "bg-warning text-warning-foreground"
+                                : "bg-secondary text-foreground"
+                          }`}
+                        >
+                          {badge.tone !== "ok" && <AlertTriangle size={12} />} {badge.text}
+                        </span>
+                      )}
+                      {s.credit_paid || s.balance === 0 ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-xs font-bold text-primary-foreground">
+                          <CheckCircle2 size={12} /> {lang === "en" ? "Cleared" : "Imelipwa"}
+                        </span>
+                      ) : s.paid > 0 ? (
+                        <span className="rounded-full bg-warning px-2 py-0.5 text-xs font-bold text-warning-foreground">
+                          {lang === "en" ? "Partial" : "Sehemu"}
+                        </span>
+                      ) : null}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {s.product_name_snapshot} · {new Date(s.date).toLocaleDateString(lang === "sw" ? "sw-KE" : "en-KE")}
+                    </div>
+                    {s.customers?.phone && <div className="text-xs text-muted-foreground">{s.customers.phone}</div>}
+                    {s.due_date && (
+                      <div className={`text-xs ${s.overdue ? "font-bold text-danger" : "text-muted-foreground"}`}>
+                        {lang === "en" ? "Due" : "Tarehe"}: {new Date(s.due_date).toLocaleDateString(lang === "sw" ? "sw-KE" : "en-KE")}
+                      </div>
                     )}
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {s.product_name_snapshot} · {new Date(s.date).toLocaleDateString(lang === "sw" ? "sw-KE" : "en-KE")}
+                  <div className="text-right">
+                    <div className="text-lg font-extrabold">{formatKsh(s.balance)}</div>
+                    {s.paid > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        {lang === "en" ? "of" : "kati ya"} {formatKsh(Number(s.total))}
+                      </div>
+                    )}
                   </div>
-                  {s.customers?.phone && <div className="text-xs text-muted-foreground">{s.customers.phone}</div>}
-                  {s.due_date && (
-                    <div className={`text-xs ${s.overdue ? "font-bold text-danger" : "text-muted-foreground"}`}>
-                      {lang === "en" ? "Due" : "Tarehe"}: {new Date(s.due_date).toLocaleDateString(lang === "sw" ? "sw-KE" : "en-KE")}
-                    </div>
-                  )}
                 </div>
-                <div className="text-right">
-                  <div className="text-lg font-extrabold">{formatKsh(s.balance)}</div>
-                  {s.paid > 0 && (
-                    <div className="text-xs text-muted-foreground">
-                      {lang === "en" ? "of" : "kati ya"} {formatKsh(Number(s.total))}
-                    </div>
-                  )}
-                </div>
+                {!s.credit_paid && s.balance > 0 && (
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    <button
+                      onClick={() => setRemindFor(s)}
+                      className="tap-target inline-flex items-center justify-center gap-1.5 rounded-xl bg-accent text-sm font-bold text-accent-foreground"
+                    >
+                      <BellRing size={16} /> {lang === "en" ? "Remind" : "Kumbusha"}
+                    </button>
+                    <button
+                      onClick={() => setPayingFor(s)}
+                      className="tap-target inline-flex items-center justify-center gap-1.5 rounded-xl border border-primary text-sm font-bold text-primary"
+                    >
+                      <Coins size={16} /> {t("partialPay")}
+                    </button>
+                    <button
+                      onClick={() => markPaid(s)}
+                      className="tap-target inline-flex items-center justify-center gap-1.5 rounded-xl bg-primary text-sm font-bold text-primary-foreground"
+                    >
+                      <CheckCircle2 size={16} /> {t("markPaid")}
+                    </button>
+                  </div>
+                )}
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setPayingFor(s)}
-                  className="tap-target inline-flex items-center justify-center gap-2 rounded-xl border border-primary font-bold text-primary"
-                >
-                  <Coins size={18} /> {t("partialPay")}
-                </button>
-                <button
-                  onClick={() => markPaid(s)}
-                  className="tap-target inline-flex items-center justify-center gap-2 rounded-xl bg-primary font-bold text-primary-foreground"
-                >
-                  <CheckCircle2 size={18} /> {t("markPaid")}
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -170,7 +270,105 @@ function CreditScreen() {
           onSaved={() => { qc.invalidateQueries(); setPayingFor(null); }}
         />
       )}
+      {remindFor && <ReminderDialog row={remindFor} onClose={() => setRemindFor(null)} />}
     </div>
+  );
+}
+
+function Metric({ icon, value, label }: { icon: React.ReactNode; value: number; label: string }) {
+  return (
+    <div className="flex flex-col items-center gap-0.5">
+      <span className="text-background/70">{icon}</span>
+      <span className="text-lg font-extrabold">{value}</span>
+      <span className="text-xs text-background/70">{label}</span>
+    </div>
+  );
+}
+
+function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void }) {
+  const { lang } = useI18n();
+  const [channel, setChannel] = useState<"sms" | "whatsapp" | "email">("sms");
+  const phone = row.customers?.phone ?? "";
+  const name = row.customers?.name ?? (lang === "en" ? "Customer" : "Mteja");
+  const due = row.due_date ? new Date(row.due_date).toLocaleDateString(lang === "sw" ? "sw-KE" : "en-KE") : lang === "en" ? "as agreed" : "kama tulivyoagana";
+
+  const defaultMessage =
+    lang === "en"
+      ? `Hello ${name}, this is a friendly reminder from your VendorHub vendor. Your balance is ${formatKsh(row.balance)} for ${row.product_name_snapshot}, due ${due}. Kindly pay via M-Pesa or at the stall. Asante!`
+      : `Habari ${name}, hiki ni kikumbusho kutoka kwa muuzaji wako. Salio lako ni ${formatKsh(row.balance)} kwa ${row.product_name_snapshot}, tarehe ya kulipa ${due}. Tafadhali lipa kwa M-Pesa au ukifika kibandani. Asante!`;
+
+  const [message, setMessage] = useState(defaultMessage);
+
+  const send = () => {
+    const text = encodeURIComponent(message);
+    if (channel === "email") {
+      window.location.href = `mailto:?subject=${encodeURIComponent(lang === "en" ? "Payment reminder" : "Kikumbusho cha malipo")}&body=${text}`;
+    } else if (channel === "whatsapp") {
+      const wa = phone.replace(/[^0-9]/g, "").replace(/^0/, "254");
+      window.open(`https://wa.me/${wa}?text=${text}`, "_blank", "noopener");
+    } else {
+      window.location.href = `sms:${phone}?body=${text}`;
+    }
+    onClose();
+  };
+
+  const channels = [
+    { key: "sms" as const, label: "SMS", icon: <Smartphone size={16} /> },
+    { key: "whatsapp" as const, label: "WhatsApp", icon: <MessageSquare size={16} /> },
+    { key: "email" as const, label: "Email", icon: <Mail size={16} /> },
+  ];
+
+  return (
+    <Modal onClose={onClose} title={lang === "en" ? "Send reminder" : "Tuma kikumbusho"}>
+      <div className="flex flex-col gap-3">
+        <div className="card-soft flex items-center justify-between bg-secondary p-4">
+          <div>
+            <div className="font-bold">{name}</div>
+            {phone && <div className="text-xs text-muted-foreground">{phone}</div>}
+          </div>
+          <span className="text-xl font-extrabold text-primary">{formatKsh(row.balance)}</span>
+        </div>
+        <div className="grid grid-cols-3 gap-2">
+          {channels.map((c) => (
+            <button
+              key={c.key}
+              onClick={() => setChannel(c.key)}
+              className={`tap-target inline-flex items-center justify-center gap-1.5 rounded-xl text-sm font-bold ${
+                channel === c.key ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground"
+              }`}
+            >
+              {c.icon} {c.label}
+            </button>
+          ))}
+        </div>
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-semibold">{lang === "en" ? "Message" : "Ujumbe"}</span>
+          <textarea
+            rows={5}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            className="rounded-xl border border-input bg-card p-3 text-sm"
+          />
+        </label>
+        {!phone && channel !== "email" && (
+          <p className="text-xs font-semibold text-danger">
+            {lang === "en" ? "No phone number saved for this customer." : "Hakuna namba ya simu ya mteja huyu."}
+          </p>
+        )}
+        <div className="mt-1 flex gap-2">
+          <button onClick={onClose} className="tap-target flex-1 rounded-2xl border border-border font-semibold">
+            {lang === "en" ? "Cancel" : "Ghairi"}
+          </button>
+          <button
+            onClick={send}
+            disabled={!phone && channel !== "email"}
+            className="tap-target flex-1 rounded-2xl bg-primary font-bold text-primary-foreground disabled:opacity-60"
+          >
+            {lang === "en" ? "Send" : "Tuma"}
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -202,7 +400,6 @@ function PaymentDialog({ row, onClose, onSaved }: { row: CreditRow; onClose: () 
       setSaving(false);
     }
   };
-
 
   return (
     <Modal onClose={onClose} title={t("partialPay")}>
