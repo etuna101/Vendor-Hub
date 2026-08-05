@@ -117,6 +117,7 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product) return toast.error("Pick a product");
+    if (isCredit && !dueDate) return toast.error(lang === "en" ? "Pick a due date for this credit sale" : "Chagua tarehe ya kulipa deni");
     setSaving(true);
     try {
       const res = await recordSaleOfflineFirst({
@@ -191,8 +192,8 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
                 <input placeholder={lang === "en" ? "New customer name" : "Jina la mteja mpya"} value={newCustomer} onChange={(e) => setNewCustomer(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-4" />
               )}
               <label className="flex flex-col gap-1">
-                <span className="text-sm font-semibold">{lang === "en" ? "Due date (optional)" : "Tarehe ya kulipa (hiari)"}</span>
-                <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-3" />
+                <span className="text-sm font-semibold">{lang === "en" ? "Due date" : "Tarehe ya kulipa"}</span>
+                <input type="date" required value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-3" />
               </label>
             </div>
           )}
