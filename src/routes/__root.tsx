@@ -16,7 +16,7 @@ import { AuthProvider } from "@/lib/auth";
 import { OfflineProvider } from "@/lib/offline/OfflineProvider";
 import { registerAppServiceWorker } from "@/lib/pwa/register-sw";
 import { Toaster } from "@/components/ui/sonner";
-import logoUrl from "@/assets/vendorhub-logo.png";
+const logoUrl = "/favicon.png";
 
 
 function replaceLovableWatermark() {
