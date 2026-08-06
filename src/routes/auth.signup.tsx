@@ -43,53 +43,64 @@ function SignUp() {
   };
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-2">
-      {/* Showcase side */}
-      <aside className="relative hidden overflow-hidden bg-primary lg:block">
+    <div className="min-h-screen bg-background">
+      {/* Hero */}
+      <section className="relative isolate overflow-hidden">
         <img
-          src={showcase2.url}
-          alt="Fresh produce vendor holding a crate of green peppers at a market stall"
-          className="absolute inset-0 h-full w-full object-cover"
-          loading="lazy"
+          src={showcase1.url}
+          alt="Mama Mboga vendor seated at her open-air fruit and vegetable stall"
+          className="absolute inset-0 h-full w-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-primary/95 via-primary/60 to-primary/20" />
-        <div className="relative flex h-full flex-col justify-between p-10 text-primary-foreground">
-          <Logo size={44} />
-          <div className="flex flex-col gap-6">
-            <img
-              src={showcase1.url}
-              alt="Mama Mboga vendor seated at her open-air fruit and vegetable stall"
-              className="h-44 w-40 rounded-2xl border-4 border-primary-foreground/70 object-cover shadow-xl"
-              loading="lazy"
-            />
-            <div>
-              <h2 className="text-3xl font-extrabold leading-tight">
-                {lang === "en" ? "Record. Track. Grow." : "Rekodi. Fuatilia. Kua."}
-              </h2>
-              <p className="mt-2 max-w-sm text-primary-foreground/90">
-                {lang === "en"
-                  ? "Built for Mama Mboga — daily sales, stock, expenses and deni in one place, even offline."
-                  : "Imeundwa kwa Mama Mboga — mauzo, bidhaa, matumizi na deni sehemu moja, hata bila mtandao."}
-              </p>
+        <div className="absolute inset-0 bg-gradient-to-b from-foreground/85 via-foreground/70 to-foreground/90" />
+        <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-5 px-5 py-10 sm:px-8 sm:py-14 lg:py-20">
+          <Logo size={40} />
+          <div className="max-w-2xl">
+            <h1 className="text-3xl font-extrabold leading-tight text-primary-foreground sm:text-4xl lg:text-5xl">
+              {lang === "en" ? "Record. Track. Grow." : "Rekodi. Fuatilia. Kua."}
+            </h1>
+            <p className="mt-3 max-w-xl text-base text-primary-foreground/90 sm:text-lg">
+              {lang === "en"
+                ? "Built for Mama Mboga — daily sales, stock, expenses and deni in one place, even offline."
+                : "Imeundwa kwa Mama Mboga — mauzo, bidhaa, matumizi na deni sehemu moja, hata bila mtandao."}
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <a
+                href="#signup-form"
+                className="tap-target inline-flex items-center rounded-2xl bg-primary px-6 font-bold text-primary-foreground"
+              >
+                {lang === "en" ? "Get started" : "Anza sasa"}
+              </a>
+              <Link
+                to="/auth/signin"
+                className="tap-target inline-flex items-center rounded-2xl border-2 border-primary-foreground/60 px-6 font-bold text-primary-foreground"
+              >
+                {t("signIn")}
+              </Link>
             </div>
           </div>
         </div>
-      </aside>
+      </section>
 
-      {/* Form side */}
-      <div className="flex flex-col justify-center px-5 py-8">
-        <div className="mx-auto w-full max-w-md">
-          <div className="lg:hidden">
-            <Logo size={40} />
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <img src={showcase1.url} alt="Mama Mboga vendor at her produce stall" className="h-28 w-full rounded-2xl object-cover" loading="lazy" />
-              <img src={showcase2.url} alt="Vendor holding a crate of fresh green peppers" className="h-28 w-full rounded-2xl object-cover" loading="lazy" />
-            </div>
+      {/* Form */}
+      <div id="signup-form" className="mx-auto grid w-full max-w-5xl gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_minmax(0,420px)] lg:py-12">
+        <aside className="hidden lg:block">
+          <img
+            src={showcase2.url}
+            alt="Fresh produce vendor holding a crate of green peppers at a market stall"
+            className="h-full max-h-[420px] w-full rounded-3xl object-cover"
+            loading="lazy"
+          />
+        </aside>
+        <div className="w-full">
+          <div className="grid grid-cols-2 gap-2 lg:hidden">
+            <img src={showcase1.url} alt="Mama Mboga vendor at her produce stall" className="h-28 w-full rounded-2xl object-cover" loading="lazy" />
+            <img src={showcase2.url} alt="Vendor holding a crate of fresh green peppers" className="h-28 w-full rounded-2xl object-cover" loading="lazy" />
           </div>
           <div className="mt-6 lg:mt-0">
-            <h1 className="text-3xl font-extrabold">{t("signUp")}</h1>
+            <h2 className="text-2xl font-extrabold sm:text-3xl">{t("signUp")}</h2>
             <p className="mt-1 text-muted-foreground">{t("tagline")}</p>
           </div>
+
           <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
             <Field label={t("fullName")}>
               <input required value={form.fullName} onChange={set("fullName")}
