@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
+import showcase2 from "@/assets/vendor-showcase-2.jpg.asset.json";
 
 export const Route = createFileRoute("/auth/signin")({
   validateSearch: (s: Record<string, unknown>): { next?: string } => {
@@ -46,21 +47,28 @@ function SignIn() {
   };
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col px-5 pt-8 pb-10">
+    <div className="relative isolate min-h-screen">
+      <img
+        src={showcase2.url}
+        alt="Fresh produce vendor holding a crate of green peppers at a market stall"
+        className="fixed inset-0 -z-10 h-full w-full object-cover object-center"
+      />
+      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-foreground/80 via-foreground/70 to-foreground/90" />
+      <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 pt-8 pb-10">
       <Logo />
-      <div className="mt-8">
+      <div className="mt-8 rounded-3xl border border-primary-foreground/20 bg-card/95 p-5 shadow-lg backdrop-blur-md">
         <h1 className="text-3xl font-extrabold">{t("signIn")}</h1>
         <p className="mt-1 text-muted-foreground">{t("tagline")}</p>
       </div>
-      <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
+      <form onSubmit={submit} className="mt-4 flex flex-col gap-4 rounded-3xl border border-primary-foreground/20 bg-card/95 p-5 shadow-lg backdrop-blur-md">
         <Field label={t("phone")}>
           <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)}
             placeholder="07XX XXX XXX"
-            className="tap-target w-full rounded-2xl border border-input bg-card px-4 text-base" />
+            className="tap-target w-full rounded-2xl border border-input bg-background px-4 text-base" />
         </Field>
         <Field label={t("password")}>
           <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-            className="tap-target w-full rounded-2xl border border-input bg-card px-4 text-base" />
+            className="tap-target w-full rounded-2xl border border-input bg-background px-4 text-base" />
         </Field>
         <button type="submit" disabled={loading} className="tap-target mt-2 rounded-2xl bg-primary font-bold text-primary-foreground disabled:opacity-60">
           {loading ? "…" : t("signIn")}
@@ -68,10 +76,11 @@ function SignIn() {
         <Link to="/auth/forgot" className="text-center text-sm font-semibold text-primary">
           {t("forgotPassword")}
         </Link>
-        <div className="mt-4 text-center text-sm text-muted-foreground">
+        <div className="text-center text-sm text-muted-foreground">
           {t("noAccount")} <Link to="/auth/signup" className="font-bold text-primary">{t("signUp")}</Link>
         </div>
       </form>
+      </div>
     </div>
   );
 }

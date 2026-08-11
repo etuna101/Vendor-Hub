@@ -43,7 +43,13 @@ function SignUp() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="relative isolate min-h-screen">
+      <img
+        src={showcase2.url}
+        alt="Fresh produce vendor holding a crate of green peppers"
+        className="fixed inset-0 -z-10 h-full w-full object-cover object-center"
+      />
+      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-foreground/85 via-foreground/75 to-foreground/90" />
       {/* Hero */}
       <section className="relative isolate overflow-hidden">
         <img
@@ -91,7 +97,7 @@ function SignUp() {
             loading="lazy"
           />
         </aside>
-        <div className="w-full">
+        <div className="w-full rounded-3xl border border-primary-foreground/20 bg-card/95 p-5 shadow-lg backdrop-blur-md">
           <div className="grid grid-cols-2 gap-2 lg:hidden">
             <img src={showcase1.url} alt="Mama Mboga vendor at her produce stall" className="h-28 w-full rounded-2xl object-cover" loading="lazy" />
             <img src={showcase2.url} alt="Vendor holding a crate of fresh green peppers" className="h-28 w-full rounded-2xl object-cover" loading="lazy" />
