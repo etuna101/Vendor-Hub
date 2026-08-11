@@ -52,7 +52,6 @@ function SignUp() {
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-foreground/85 via-foreground/75 to-foreground/90" />
       {/* Hero */}
       <section className="relative isolate overflow-hidden">
-      <section className="relative isolate overflow-hidden">
         <img
           src={showcase1.url}
           alt="Mama Mboga vendor seated at her open-air fruit and vegetable stall"
