@@ -46,9 +46,16 @@ function SignIn() {
   };
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col px-5 pt-8 pb-10">
+    <div className="relative isolate min-h-screen">
+      <img
+        src={showcase2.url}
+        alt="Fresh produce vendor holding a crate of green peppers at a market stall"
+        className="fixed inset-0 -z-10 h-full w-full object-cover object-center"
+      />
+      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-foreground/80 via-foreground/70 to-foreground/90" />
+      <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 pt-8 pb-10">
       <Logo />
-      <div className="mt-8">
+      <div className="mt-8 rounded-3xl border border-primary-foreground/20 bg-card/95 p-5 shadow-lg backdrop-blur-md">
         <h1 className="text-3xl font-extrabold">{t("signIn")}</h1>
         <p className="mt-1 text-muted-foreground">{t("tagline")}</p>
       </div>
