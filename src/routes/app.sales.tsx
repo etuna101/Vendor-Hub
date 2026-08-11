@@ -2,12 +2,15 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { offlineList, recordSaleOfflineFirst } from "@/lib/offline/actions";
+import { useOffline } from "@/lib/offline/OfflineProvider";
 import { useI18n } from "@/lib/i18n";
 import { QuickFilterBar, getPeriodRange, type PeriodKey } from "@/components/QuickFilterBar";
 import { formatKsh, formatQty } from "@/lib/format";
 import { toast } from "sonner";
-import { Plus, ShoppingCart } from "lucide-react";
+import { Plus, ShoppingCart, CloudOff } from "lucide-react";
 import { Modal } from "./app.inventory";
+
 
 export const Route = createFileRoute("/app/sales")({ component: SalesScreen });
 
@@ -20,14 +23,19 @@ function SalesScreen() {
 
   const { data: sales = [] } = useQuery({
     queryKey: ["sales", period],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("sales").select("*, customers(name)").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
+    queryFn: () =>
+      offlineList<any>("sales", async () => {
+        const { data, error } = await supabase.from("sales").select("*, customers(name)").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date", { ascending: false });
+        if (error) throw error;
+        return data ?? [];
+      }, (r) => {
+        const d = new Date(r.date).getTime();
+        return d >= from.getTime() && d <= to.getTime();
+      }).then((rows) => rows.sort((a, b) => +new Date(b.date) - +new Date(a.date))),
   });
 
-  const total = sales.reduce((s, r) => s + Number(r.total), 0);
+  const total = sales.reduce((s: number, r: any) => s + Number(r.total), 0);
+
 
   return (
     <div className="flex flex-col gap-4">
@@ -82,22 +90,26 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const [dueDate, setDueDate] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
+  const { online, refresh } = useOffline();
+
   const { data: products = [] } = useQuery({
     queryKey: ["products-active"],
-    queryFn: async () => {
-      const { data } = await supabase.from("products").select("id, name, unit, selling_price, current_stock").eq("is_active", true).order("name");
-      return data ?? [];
-    },
+    queryFn: () =>
+      offlineList<any>("products", async () => {
+        const { data } = await supabase.from("products").select("*").eq("is_active", true).order("name");
+        return data ?? [];
+      }, (p) => p.is_active !== false).then((rows) => rows.sort((a, b) => String(a.name).localeCompare(String(b.name)))),
   });
   const { data: customers = [] } = useQuery({
     queryKey: ["customers"],
+    enabled: online,
     queryFn: async () => {
       const { data } = await supabase.from("customers").select("id, name").order("name");
       return data ?? [];
     },
   });
 
-  const product = useMemo(() => products.find((p) => p.id === productId), [products, productId]);
+  const product = useMemo(() => products.find((p: any) => p.id === productId), [products, productId]);
   const unitPrice = product ? Number(product.selling_price) : 0;
   const total = qty * unitPrice;
 
@@ -105,25 +117,33 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!product) return toast.error("Pick a product");
+    if (isCredit && !dueDate) return toast.error(lang === "en" ? "Pick a due date for this credit sale" : "Chagua tarehe ya kulipa deni");
     setSaving(true);
-    let cid: string | null = customerId || null;
-    if (isCredit && !cid && newCustomer.trim()) {
-      const { data: u } = await supabase.auth.getUser();
-      const { data, error } = await supabase.from("customers").insert({ name: newCustomer.trim(), user_id: u.user!.id }).select("id").single();
-      if (error) { setSaving(false); return toast.error(error.message); }
-      cid = data.id;
+    try {
+      const res = await recordSaleOfflineFirst({
+        product_id: productId,
+        product_name: product.name,
+        quantity: qty,
+        unit_price: unitPrice,
+        customer_id: customerId || null,
+        new_customer_name: newCustomer.trim() || undefined,
+        is_credit: isCredit,
+        due_date: dueDate || null,
+      });
+      await refresh();
+      toast.success(
+        res.queued
+          ? lang === "en" ? "Saved offline — will sync" : "Imehifadhiwa — itasawazishwa"
+          : lang === "en" ? "Sale recorded" : "Muuzo umehifadhiwa",
+      );
+      onSaved();
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed");
+    } finally {
+      setSaving(false);
     }
-    const { data: saleId, error } = await supabase.rpc("record_sale" as any, {
-      _product_id: productId, _quantity: qty, _unit_price: unitPrice, _customer_id: cid, _is_credit: isCredit,
-    } as any);
-    if (error) { setSaving(false); return toast.error(error.message); }
-    if (isCredit && dueDate && saleId) {
-      await supabase.from("sales").update({ due_date: dueDate } as any).eq("id", saleId as any);
-    }
-    setSaving(false);
-    toast.success(lang === "en" ? "Sale recorded" : "Muuzo umehifadhiwa");
-    onSaved();
   };
+
 
   return (
     <Modal onClose={onClose} title={t("newSale")}>
@@ -131,6 +151,13 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
         <p className="text-muted-foreground">{t("empty_products")}</p>
       ) : (
         <form onSubmit={submit} className="flex flex-col gap-3">
+          {!online && (
+            <p className="flex items-center gap-2 rounded-xl bg-accent/20 p-3 text-sm font-semibold">
+              <CloudOff size={16} />
+              {lang === "en" ? "No internet — this sale will be saved and synced later." : "Hakuna mtandao — muuzo huu utahifadhiwa na kusawazishwa baadaye."}
+            </p>
+          )}
+
           <label className="flex flex-col gap-1">
             <span className="text-sm font-semibold">{t("product")}</span>
             <select required value={productId} onChange={(e) => setProductId(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-3">
@@ -165,8 +192,8 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
                 <input placeholder={lang === "en" ? "New customer name" : "Jina la mteja mpya"} value={newCustomer} onChange={(e) => setNewCustomer(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-4" />
               )}
               <label className="flex flex-col gap-1">
-                <span className="text-sm font-semibold">{lang === "en" ? "Due date (optional)" : "Tarehe ya kulipa (hiari)"}</span>
-                <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-3" />
+                <span className="text-sm font-semibold">{lang === "en" ? "Due date" : "Tarehe ya kulipa"}</span>
+                <input type="date" required value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-3" />
               </label>
             </div>
           )}

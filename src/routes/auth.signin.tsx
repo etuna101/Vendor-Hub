@@ -5,12 +5,19 @@ import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 
-export const Route = createFileRoute("/auth/signin")({ component: SignIn });
+export const Route = createFileRoute("/auth/signin")({
+  validateSearch: (s: Record<string, unknown>): { next?: string } => {
+    const next = typeof s.next === "string" && s.next.startsWith("/") && !s.next.startsWith("//") ? s.next : undefined;
+    return next ? { next } : {};
+  },
+  component: SignIn,
+});
 
 function SignIn() {
   const { t } = useI18n();
   const { signIn } = useAuth();
   const nav = useNavigate();
+  const { next } = Route.useSearch();
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,6 +27,11 @@ function SignIn() {
     setLoading(true);
     const { error } = await signIn({ phone, password });
     if (error) { setLoading(false); return toast.error(error); }
+    if (next) {
+      setLoading(false);
+      window.location.href = next;
+      return;
+    }
     // Route based on role
     const { supabase } = await import("@/integrations/supabase/client");
     const { data: userData } = await supabase.auth.getUser();

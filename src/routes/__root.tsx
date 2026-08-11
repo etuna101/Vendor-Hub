@@ -13,8 +13,11 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { LanguageProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth";
+import { OfflineProvider } from "@/lib/offline/OfflineProvider";
+import { registerAppServiceWorker } from "@/lib/pwa/register-sw";
 import { Toaster } from "@/components/ui/sonner";
-import logoUrl from "@/assets/vendorhub-logo.png";
+const logoUrl = "/favicon.png";
+
 
 function replaceLovableWatermark() {
   const selectors = [
@@ -95,7 +98,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap" },
       { rel: "icon", href: "/favicon.png", type: "image/png" },
-      { rel: "apple-touch-icon", href: "/favicon.png" },
+      { rel: "apple-touch-icon", href: "/pwa-192.png" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
     ],
   }),
   shellComponent: RootShell,
@@ -131,14 +135,19 @@ function RootComponent() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => { registerAppServiceWorker(); }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
-        <AuthProvider>
-          <Outlet />
-          <Toaster position="top-center" />
-        </AuthProvider>
+        <OfflineProvider>
+          <AuthProvider>
+            <Outlet />
+            <Toaster position="top-center" />
+          </AuthProvider>
+        </OfflineProvider>
       </LanguageProvider>
     </QueryClientProvider>
   );
+
 }
