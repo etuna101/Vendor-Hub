@@ -97,7 +97,7 @@ function SignUp() {
             loading="lazy"
           />
         </aside>
-        <div className="w-full">
+        <div className="w-full rounded-3xl border border-primary-foreground/20 bg-card/95 p-5 shadow-lg backdrop-blur-md">
           <div className="grid grid-cols-2 gap-2 lg:hidden">
             <img src={showcase1.url} alt="Mama Mboga vendor at her produce stall" className="h-28 w-full rounded-2xl object-cover" loading="lazy" />
             <img src={showcase2.url} alt="Vendor holding a crate of fresh green peppers" className="h-28 w-full rounded-2xl object-cover" loading="lazy" />
