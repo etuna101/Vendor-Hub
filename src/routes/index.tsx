@@ -3,6 +3,8 @@ import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { Sprout, Scale, Handshake, type LucideIcon } from "lucide-react";
+import showcase1 from "@/assets/vendor-showcase-1.jpg.asset.json";
+import showcase2 from "@/assets/vendor-showcase-2.jpg.asset.json";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
