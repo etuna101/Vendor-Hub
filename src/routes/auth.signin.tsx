@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
+import showcase2 from "@/assets/vendor-showcase-2.jpg.asset.json";
 
 export const Route = createFileRoute("/auth/signin")({
   validateSearch: (s: Record<string, unknown>): { next?: string } => {
