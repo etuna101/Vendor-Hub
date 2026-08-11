@@ -59,15 +59,15 @@ function SignIn() {
         <h1 className="text-3xl font-extrabold">{t("signIn")}</h1>
         <p className="mt-1 text-muted-foreground">{t("tagline")}</p>
       </div>
-      <form onSubmit={submit} className="mt-6 flex flex-col gap-4">
+      <form onSubmit={submit} className="mt-4 flex flex-col gap-4 rounded-3xl border border-primary-foreground/20 bg-card/95 p-5 shadow-lg backdrop-blur-md">
         <Field label={t("phone")}>
           <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)}
             placeholder="07XX XXX XXX"
-            className="tap-target w-full rounded-2xl border border-input bg-card px-4 text-base" />
+            className="tap-target w-full rounded-2xl border border-input bg-background px-4 text-base" />
         </Field>
         <Field label={t("password")}>
           <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-            className="tap-target w-full rounded-2xl border border-input bg-card px-4 text-base" />
+            className="tap-target w-full rounded-2xl border border-input bg-background px-4 text-base" />
         </Field>
         <button type="submit" disabled={loading} className="tap-target mt-2 rounded-2xl bg-primary font-bold text-primary-foreground disabled:opacity-60">
           {loading ? "…" : t("signIn")}
@@ -75,10 +75,11 @@ function SignIn() {
         <Link to="/auth/forgot" className="text-center text-sm font-semibold text-primary">
           {t("forgotPassword")}
         </Link>
-        <div className="mt-4 text-center text-sm text-muted-foreground">
+        <div className="text-center text-sm text-muted-foreground">
           {t("noAccount")} <Link to="/auth/signup" className="font-bold text-primary">{t("signUp")}</Link>
         </div>
       </form>
+      </div>
     </div>
   );
 }
