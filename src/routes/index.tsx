@@ -3,8 +3,8 @@ import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { Sprout, Scale, Handshake, type LucideIcon } from "lucide-react";
-import showcase1 from "@/assets/vendor-showcase-1.jpg.asset.json";
-import showcase2 from "@/assets/vendor-showcase-2.jpg.asset.json";
+import showcase1 from "@/assets/vendor-showcase-1.jpg";
+import showcase2 from "@/assets/vendor-showcase-2.jpg";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
@@ -20,7 +20,7 @@ function Landing() {
   return (
     <div className="relative isolate min-h-screen">
       <img
-        src={showcase1.url}
+        src={showcase1}
         alt="Mama Mboga vendor seated at her open-air fruit and vegetable stall"
         className="fixed inset-0 -z-10 h-full w-full object-cover object-center"
       />
@@ -61,8 +61,8 @@ function Landing() {
           </Link>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <img src={showcase2.url} alt="Vendor holding a crate of fresh green peppers" className="h-32 w-full rounded-2xl object-cover sm:h-44" loading="lazy" />
-          <img src={showcase1.url} alt="Fruits and vegetables displayed at a market stall" className="h-32 w-full rounded-2xl object-cover sm:h-44" loading="lazy" />
+          <img src={showcase2} alt="Vendor holding a crate of fresh green peppers" className="h-32 w-full rounded-2xl object-cover sm:h-44" loading="lazy" />
+          <img src={showcase1} alt="Fruits and vegetables displayed at a market stall" className="h-32 w-full rounded-2xl object-cover sm:h-44" loading="lazy" />
         </div>
       </main>
     </div>

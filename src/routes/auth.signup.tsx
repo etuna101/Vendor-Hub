@@ -4,8 +4,8 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
-import showcase1 from "@/assets/vendor-showcase-1.jpg.asset.json";
-import showcase2 from "@/assets/vendor-showcase-2.jpg.asset.json";
+import showcase1 from "@/assets/vendor-showcase-1.jpg";
+import showcase2 from "@/assets/vendor-showcase-2.jpg";
 
 export const Route = createFileRoute("/auth/signup")({
   component: SignUp,
@@ -45,7 +45,7 @@ function SignUp() {
   return (
     <div className="relative isolate min-h-screen">
       <img
-        src={showcase2.url}
+        src={showcase2}
         alt="Fresh produce vendor holding a crate of green peppers"
         className="fixed inset-0 -z-10 h-full w-full object-cover object-center"
       />
@@ -53,7 +53,7 @@ function SignUp() {
       {/* Hero */}
       <section className="relative isolate overflow-hidden">
         <img
-          src={showcase1.url}
+          src={showcase1}
           alt="Mama Mboga vendor seated at her open-air fruit and vegetable stall"
           className="absolute inset-0 h-full w-full object-cover object-center"
         />
@@ -91,7 +91,7 @@ function SignUp() {
       <div id="signup-form" className="mx-auto grid w-full max-w-5xl gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[1fr_minmax(0,420px)] lg:py-12">
         <aside className="hidden lg:block">
           <img
-            src={showcase2.url}
+            src={showcase2}
             alt="Fresh produce vendor holding a crate of green peppers at a market stall"
             className="h-full max-h-[420px] w-full rounded-3xl object-cover"
             loading="lazy"
@@ -99,8 +99,8 @@ function SignUp() {
         </aside>
         <div className="w-full rounded-3xl border border-primary-foreground/20 bg-card/95 p-5 shadow-lg backdrop-blur-md">
           <div className="grid grid-cols-2 gap-2 lg:hidden">
-            <img src={showcase1.url} alt="Mama Mboga vendor at her produce stall" className="h-28 w-full rounded-2xl object-cover" loading="lazy" />
-            <img src={showcase2.url} alt="Vendor holding a crate of fresh green peppers" className="h-28 w-full rounded-2xl object-cover" loading="lazy" />
+            <img src={showcase1} alt="Mama Mboga vendor at her produce stall" className="h-28 w-full rounded-2xl object-cover" loading="lazy" />
+            <img src={showcase2} alt="Vendor holding a crate of fresh green peppers" className="h-28 w-full rounded-2xl object-cover" loading="lazy" />
           </div>
           <div className="mt-6 lg:mt-0">
             <h2 className="text-2xl font-extrabold sm:text-3xl">{t("signUp")}</h2>
