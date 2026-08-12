@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
-import showcase2 from "@/assets/vendor-showcase-2.jpg.asset.json";
+import showcase2 from "@/assets/vendor-showcase-2.jpg";
 
 export const Route = createFileRoute("/auth/signin")({
   validateSearch: (s: Record<string, unknown>): { next?: string } => {
@@ -49,7 +49,7 @@ function SignIn() {
   return (
     <div className="relative isolate min-h-screen">
       <img
-        src={showcase2.url}
+        src={showcase2}
         alt="Fresh produce vendor holding a crate of green peppers at a market stall"
         className="fixed inset-0 -z-10 h-full w-full object-cover object-center"
       />
