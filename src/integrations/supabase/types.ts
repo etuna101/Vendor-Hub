@@ -276,7 +276,9 @@ export type Database = {
           note: string | null
           product_id: string
           quantity: number
+          reason: string | null
           user_id: string
+          value: number
         }
         Insert: {
           change_type: string
@@ -285,7 +287,9 @@ export type Database = {
           note?: string | null
           product_id: string
           quantity: number
+          reason?: string | null
           user_id: string
+          value?: number
         }
         Update: {
           change_type?: string
@@ -294,7 +298,9 @@ export type Database = {
           note?: string | null
           product_id?: string
           quantity?: number
+          reason?: string | null
           user_id?: string
+          value?: number
         }
         Relationships: [
           {
@@ -392,6 +398,15 @@ export type Database = {
           _unit_price: number
         }
         Returns: string
+      }
+      record_stock_loss: {
+        Args: {
+          _note: string
+          _product_id: string
+          _quantity: number
+          _reason: string
+        }
+        Returns: undefined
       }
     }
     Enums: {
