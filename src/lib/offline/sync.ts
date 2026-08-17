@@ -5,7 +5,7 @@ export type SyncResult = { synced: number; needsReview: number };
 
 function isStockConflict(message: string) {
   const m = message.toLowerCase();
-  return m.includes("insufficient stock") || m.includes("product not found");
+  return m.includes("insufficient stock") || m.includes("product not found") || m.includes("exceeds current stock");
 }
 
 /** Replay one queued action against the backend. Throws for retryable errors. */
@@ -55,6 +55,17 @@ async function replay(item: QueueItem) {
     const { error } = await supabase.rpc("record_restock" as any, {
       _product_id: p.product_id,
       _quantity: p.quantity,
+      _note: p.note ?? null,
+    } as any);
+    if (error) throw error;
+    return;
+  }
+
+  if (item.kind === "loss") {
+    const { error } = await supabase.rpc("record_stock_loss" as any, {
+      _product_id: p.product_id,
+      _quantity: p.quantity,
+      _reason: p.reason,
       _note: p.note ?? null,
     } as any);
     if (error) throw error;

@@ -196,3 +196,32 @@ export async function recordRestockOfflineFirst(input: {
   await enqueue("restock", input);
   return { queued: true };
 }
+
+/** Log spoiled / damaged / lost stock. Works offline and syncs later. */
+export async function recordStockLossOfflineFirst(input: {
+  product_id: string;
+  quantity: number;
+  reason: string;
+  note?: string;
+}) {
+  await currentUserId();
+  if (!isOffline()) {
+    const { error } = await supabase.rpc("record_stock_loss" as any, {
+      _product_id: input.product_id,
+      _quantity: input.quantity,
+      _reason: input.reason,
+      _note: input.note ?? null,
+    } as any);
+    if (error) throw new Error(error.message);
+    return { queued: false };
+  }
+  const db = getDB();
+  if (db) {
+    const product = await db.products.get(input.product_id);
+    if (product) {
+      await db.products.put({ ...product, current_stock: Number(product.current_stock) - input.quantity });
+    }
+  }
+  await enqueue("loss", input);
+  return { queued: true };
+}
