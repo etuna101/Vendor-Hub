@@ -1,6 +1,6 @@
 import Dexie, { type Table } from "dexie";
 
-export type QueueKind = "sale" | "expense" | "restock" | "credit_payment" | "product";
+export type QueueKind = "sale" | "expense" | "restock" | "loss" | "credit_payment" | "product";
 export type QueueStatus = "pending" | "syncing" | "needs_review" | "done";
 
 export interface QueueItem {
