@@ -1,14 +1,16 @@
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { offlineList, recordRestockOfflineFirst } from "@/lib/offline/actions";
+import { offlineList, recordRestockOfflineFirst, recordStockLossOfflineFirst } from "@/lib/offline/actions";
 import { useOffline } from "@/lib/offline/OfflineProvider";
 import { useI18n } from "@/lib/i18n";
 import { formatKsh, formatQty } from "@/lib/format";
+import { buildStockAdvice, LOSS_LABELS, LOSS_REASONS, type LossReason, type StockAdvice } from "@/lib/stock-insights";
 import { toast } from "sonner";
-import { Plus, Package, AlertTriangle, PackagePlus } from "lucide-react";
+import { Plus, Package, AlertTriangle, PackagePlus, Trash2, Sparkles, TrendingDown } from "lucide-react";
+
 
 
 const search = z.object({ low: z.coerce.number().optional() });
