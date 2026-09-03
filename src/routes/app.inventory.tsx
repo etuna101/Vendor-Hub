@@ -236,9 +236,7 @@ function LossDialog({ productId, product, onClose, onSaved }: { productId: strin
   );
 }
 
-    </div>
-  );
-}
+
 
 function EmptyState({ label, cta, onAdd }: { label: string; cta: string; onAdd: () => void }) {
   return (
