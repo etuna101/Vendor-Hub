@@ -11,10 +11,11 @@ import jsPDF from "jspdf";
 export const Route = createFileRoute("/app/reports")({ component: Reports });
 
 function Reports() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [period, setPeriod] = useState<PeriodKey>("thisMonth");
   const { from, to } = getPeriodRange(period);
   const periodLabel = t(period);
+  const wasteTitle = lang === "sw" ? "Ripoti ya hasara ya mboga" : "Spoilage & waste report";
 
   const { data } = useQuery({
     queryKey: ["reports", period],
