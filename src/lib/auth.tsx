@@ -16,6 +16,22 @@ const AuthCtx = createContext<Ctx>({
   signUp: async () => ({}), signIn: async () => ({}), signOut: async () => {},
 });
 
+function signInErrorMessage(message: string) {
+  if (/email not confirmed/i.test(message)) {
+    return "Please verify your email before signing in.";
+  }
+  if (/invalid login credentials/i.test(message)) {
+    return "Incorrect email or password. Check your details or reset your password.";
+  }
+  if (/email.*disabled|provider.*disabled/i.test(message)) {
+    return "Email and password sign-in is disabled for this Supabase project.";
+  }
+  if (/rate limit|too many requests/i.test(message)) {
+    return "Too many sign-in attempts. Please wait a few minutes and try again.";
+  }
+  return "Unable to sign in right now. Please try again.";
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -45,10 +61,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn: Ctx["signIn"] = async ({ email, password }) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const normalizedEmail = email.trim();
+    if (!normalizedEmail || !password) {
+      return { error: "Enter your email address and password." };
+    }
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    });
     if (error) {
-      if (/email not confirmed/i.test(error.message)) return { error: "Please verify your email before signing in." };
-      return { error: "Wrong email or password" };
+      return { error: signInErrorMessage(error.message) };
     }
     return {};
   };
