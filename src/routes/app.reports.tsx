@@ -19,19 +19,23 @@ function Reports() {
   const { data } = useQuery({
     queryKey: ["reports", period],
     queryFn: async () => {
-      const [salesRes, expRes, prodRes] = await Promise.all([
+      const [salesRes, expRes, prodRes, lossRes] = await Promise.all([
         supabase.from("sales").select("date, product_name_snapshot, quantity, unit_price, total, is_credit").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date"),
         supabase.from("expenses").select("date, category, amount, description").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date"),
         supabase.from("products").select("name, current_stock, low_stock_threshold, cost_price, unit").eq("is_active", true),
+        supabase.from("stock_history").select("date, quantity, value, reason, note, products(name, unit)").eq("change_type", "loss").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date"),
       ]);
       const sales = salesRes.data ?? [];
       const expenses = expRes.data ?? [];
       const products = prodRes.data ?? [];
+      const losses = (lossRes.data ?? []) as any[];
       const salesTotal = sales.reduce((s, r) => s + Number(r.total), 0);
       const expenseTotal = expenses.reduce((s, r) => s + Number(r.amount), 0);
       const stockValue = products.reduce((s, p) => s + Number(p.current_stock) * Number(p.cost_price), 0);
       const lowCount = products.filter((p) => Number(p.current_stock) <= Number(p.low_stock_threshold)).length;
-      return { sales, expenses, products, salesTotal, expenseTotal, stockValue, lowCount, profit: salesTotal - expenseTotal };
+      const wasteTotal = losses.reduce((s, r) => s + Math.abs(Number(r.value ?? 0)), 0);
+      const wastePct = salesTotal > 0 ? (wasteTotal / salesTotal) * 100 : 0;
+      return { sales, expenses, products, losses, salesTotal, expenseTotal, stockValue, lowCount, wasteTotal, wastePct, profit: salesTotal - expenseTotal - wasteTotal };
     },
   });
 
