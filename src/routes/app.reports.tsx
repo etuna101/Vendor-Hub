@@ -11,27 +11,32 @@ import jsPDF from "jspdf";
 export const Route = createFileRoute("/app/reports")({ component: Reports });
 
 function Reports() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [period, setPeriod] = useState<PeriodKey>("thisMonth");
   const { from, to } = getPeriodRange(period);
   const periodLabel = t(period);
+  const wasteTitle = lang === "sw" ? "Ripoti ya hasara ya mboga" : "Spoilage & waste report";
 
   const { data } = useQuery({
     queryKey: ["reports", period],
     queryFn: async () => {
-      const [salesRes, expRes, prodRes] = await Promise.all([
+      const [salesRes, expRes, prodRes, lossRes] = await Promise.all([
         supabase.from("sales").select("date, product_name_snapshot, quantity, unit_price, total, is_credit").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date"),
         supabase.from("expenses").select("date, category, amount, description").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date"),
         supabase.from("products").select("name, current_stock, low_stock_threshold, cost_price, unit").eq("is_active", true),
+        supabase.from("stock_history").select("date, quantity, value, reason, note, products(name, unit)").eq("change_type", "loss").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date"),
       ]);
       const sales = salesRes.data ?? [];
       const expenses = expRes.data ?? [];
       const products = prodRes.data ?? [];
+      const losses = (lossRes.data ?? []) as any[];
       const salesTotal = sales.reduce((s, r) => s + Number(r.total), 0);
       const expenseTotal = expenses.reduce((s, r) => s + Number(r.amount), 0);
       const stockValue = products.reduce((s, p) => s + Number(p.current_stock) * Number(p.cost_price), 0);
       const lowCount = products.filter((p) => Number(p.current_stock) <= Number(p.low_stock_threshold)).length;
-      return { sales, expenses, products, salesTotal, expenseTotal, stockValue, lowCount, profit: salesTotal - expenseTotal };
+      const wasteTotal = losses.reduce((s, r) => s + Math.abs(Number(r.value ?? 0)), 0);
+      const wastePct = salesTotal > 0 ? (wasteTotal / salesTotal) * 100 : 0;
+      return { sales, expenses, products, losses, salesTotal, expenseTotal, stockValue, lowCount, wasteTotal, wastePct, profit: salesTotal - expenseTotal - wasteTotal };
     },
   });
 
@@ -59,14 +64,34 @@ function Reports() {
 
       <Section
         title={t("profitEstimate")}
-        onCSV={() => downloadCSV("profit", ["Period", "Sales", "Expenses", "Profit"], [[periodLabel, data?.salesTotal ?? 0, data?.expenseTotal ?? 0, data?.profit ?? 0]])}
-        onPDF={() => downloadPDF(`${t("profitEstimate")} — ${periodLabel}`, [["Metric", "Value"]], [[t("totalSales"), formatKsh(data?.salesTotal ?? 0)], [t("totalExpenses"), formatKsh(data?.expenseTotal ?? 0)], [t("profit"), formatKsh(data?.profit ?? 0)]])}
+        onCSV={() => downloadCSV("profit", ["Period", "Sales", "Expenses", "Waste", "Profit"], [[periodLabel, data?.salesTotal ?? 0, data?.expenseTotal ?? 0, data?.wasteTotal ?? 0, data?.profit ?? 0]])}
+        onPDF={() => downloadPDF(`${t("profitEstimate")} — ${periodLabel}`, [["Metric", "Value"]], [[t("totalSales"), formatKsh(data?.salesTotal ?? 0)], [t("totalExpenses"), formatKsh(data?.expenseTotal ?? 0)], [wasteTitle, formatKsh(data?.wasteTotal ?? 0)], [t("profit"), formatKsh(data?.profit ?? 0)]])}
       >
         <div className="rounded-2xl bg-primary p-5 text-primary-foreground">
           <div className="text-sm font-semibold opacity-90">{t("profitCaption")} {periodLabel}</div>
           <div className="mt-1 text-4xl font-extrabold">{formatKsh(data?.profit ?? 0)}</div>
+          <div className="mt-1 text-xs font-semibold opacity-90">
+            {lang === "sw" ? "Mauzo − matumizi − hasara ya mboga" : "Sales − expenses − stock losses"}
+          </div>
         </div>
+        <SmallLine label={wasteTitle} value={formatKsh(data?.wasteTotal ?? 0)} />
       </Section>
+
+      <Section
+        title={wasteTitle}
+        onCSV={() => downloadCSV("waste", ["Date", "Product", "Quantity", "Reason", "Value", "Note"], (data?.losses ?? []).map((r: any) => [new Date(r.date).toLocaleDateString(), r.products?.name ?? "", Math.abs(Number(r.quantity)), r.reason ?? "", Math.abs(Number(r.value ?? 0)), r.note ?? ""]))}
+        onPDF={() => downloadPDF(`${wasteTitle} — ${periodLabel}`, [["Date", "Product", "Qty", "Reason", "Value"]], (data?.losses ?? []).map((r: any) => [new Date(r.date).toLocaleDateString(), r.products?.name ?? "", String(Math.abs(Number(r.quantity))), r.reason ?? "", formatKsh(Math.abs(Number(r.value ?? 0)))]), `${wasteTitle}: ${formatKsh(data?.wasteTotal ?? 0)}`)}
+      >
+        <BigLine label={lang === "sw" ? "Thamani ya hasara" : "Value lost"} value={formatKsh(data?.wasteTotal ?? 0)} />
+        <SmallLine label={lang === "sw" ? "Rekodi za hasara" : "Loss records"} value={String((data?.losses ?? []).length)} />
+        <SmallLine label={lang === "sw" ? "Hasara kama % ya mauzo" : "Waste as % of sales"} value={`${(data?.wastePct ?? 0).toFixed(1)}%`} />
+        {(data?.losses ?? []).length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            {lang === "sw" ? "Hakuna hasara iliyorekodiwa kwa kipindi hiki." : "No stock losses recorded for this period."}
+          </p>
+        )}
+      </Section>
+
 
       <Section
         title={t("inventoryStatus")}

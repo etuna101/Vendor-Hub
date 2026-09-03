@@ -236,9 +236,7 @@ function LossDialog({ productId, product, onClose, onSaved }: { productId: strin
   );
 }
 
-    </div>
-  );
-}
+
 
 function EmptyState({ label, cta, onAdd }: { label: string; cta: string; onAdd: () => void }) {
   return (
@@ -293,10 +291,10 @@ function AddProductDialog({ onClose, onSaved }: { onClose: () => void; onSaved: 
   );
 }
 
-function RestockDialog({ productId, product, onClose, onSaved }: { productId: string; product: any; onClose: () => void; onSaved: () => void }) {
+function RestockDialog({ productId, product, initialQty = 1, onClose, onSaved }: { productId: string; product: any; initialQty?: number; onClose: () => void; onSaved: () => void }) {
   const { t, lang } = useI18n();
   const { refresh } = useOffline();
-  const [qty, setQty] = useState(1);
+  const [qty, setQty] = useState(initialQty);
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const submit = async (e: React.FormEvent) => {

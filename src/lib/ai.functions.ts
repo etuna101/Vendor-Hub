@@ -11,12 +11,13 @@ async function buildVendorContext(supabase: any, userId: string) {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   const start30 = new Date(now.getTime() - 30 * 864e5).toISOString();
 
-  const [salesMonth, expensesMonth, products, credit, topSales] = await Promise.all([
+  const [salesMonth, expensesMonth, products, credit, topSales, losses] = await Promise.all([
     supabase.from("sales").select("total, product_name_snapshot, quantity, date").gte("date", startOfMonth),
     supabase.from("expenses").select("amount, category").gte("date", startOfMonth),
     supabase.from("products").select("name, current_stock, low_stock_threshold, selling_price").eq("is_active", true),
     supabase.from("sales").select("total, customer_id, customers(name)").eq("is_credit", true).eq("credit_paid", false),
     supabase.from("sales").select("product_name_snapshot, total").gte("date", start30),
+    supabase.from("stock_history").select("quantity, value, reason, product_id, products(name)").eq("change_type", "loss").gte("date", startOfMonth),
   ]);
 
   const salesTotal = (salesMonth.data ?? []).reduce((s: number, r: any) => s + Number(r.total), 0);
@@ -24,6 +25,15 @@ async function buildVendorContext(supabase: any, userId: string) {
   const low = (products.data ?? []).filter((p: any) => Number(p.current_stock) <= Number(p.low_stock_threshold));
   const owed = (credit.data ?? []).reduce((s: number, r: any) => s + Number(r.total), 0);
   const owingCustomers = new Set((credit.data ?? []).map((r: any) => r.customer_id).filter(Boolean)).size;
+
+  const lossRows = losses.data ?? [];
+  const lossValue = lossRows.reduce((s: number, r: any) => s + Math.abs(Number(r.value ?? 0)), 0);
+  const lossByProduct: Record<string, number> = {};
+  for (const r of lossRows) {
+    const name = r.products?.name ?? "unknown";
+    lossByProduct[name] = (lossByProduct[name] ?? 0) + Math.abs(Number(r.value ?? 0));
+  }
+  const worstLoss = Object.entries(lossByProduct).sort((a, b) => b[1] - a[1])[0];
 
   const productTotals: Record<string, number> = {};
   for (const r of topSales.data ?? []) {
@@ -41,6 +51,9 @@ async function buildVendorContext(supabase: any, userId: string) {
     outstandingCredit: owed,
     customersOwing: owingCustomers,
     bestSeller: bestSeller ? { name: bestSeller[0], revenue: bestSeller[1] } : null,
+    wasteValue: lossValue,
+    wasteEvents: lossRows.length,
+    worstWaste: worstLoss ? { name: worstLoss[0], value: worstLoss[1] } : null,
   };
 }
 
@@ -51,6 +64,9 @@ function contextToSummary(c: Awaited<ReturnType<typeof buildVendorContext>>) {
     `Estimated profit this month: KES ${Math.round(c.profit).toLocaleString()}.`,
     `Active products: ${c.productCount}. Low-stock items: ${c.lowStockCount}${c.lowStockItems.length ? ` (${c.lowStockItems.join(", ")})` : ""}.`,
     `Outstanding customer credit (deni): KES ${Math.round(c.outstandingCredit).toLocaleString()} across ${c.customersOwing} customer(s).`,
+    c.wasteEvents > 0
+      ? `Stock loss / spoilage this month: KES ${Math.round(c.wasteValue).toLocaleString()} across ${c.wasteEvents} record(s)${c.worstWaste ? `, worst item ${c.worstWaste.name} (KES ${Math.round(c.worstWaste.value).toLocaleString()})` : ""}.`
+      : `No stock loss or spoilage recorded this month.`,
     c.bestSeller ? `Best-selling product last 30 days: ${c.bestSeller.name} (KES ${Math.round(c.bestSeller.revenue).toLocaleString()}).` : `No sales in the last 30 days.`,
   ].join(" ");
 }
