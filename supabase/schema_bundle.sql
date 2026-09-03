@@ -1,7 +1,9 @@
 -- VendorHub full schema bundle
 -- Run this top-to-bottom in your own Supabase project's SQL editor.
 
+
 -- ================= 20260719122013_142d630d-af45-422e-9a5a-9fbe1d3289b4.sql =================
+
 
 -- Roles
 CREATE TYPE public.app_role AS ENUM ('admin', 'vendor');
@@ -217,7 +219,9 @@ $$ LANGUAGE plpgsql SET search_path = public;
 CREATE TRIGGER trg_profiles_updated BEFORE UPDATE ON public.profiles FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 CREATE TRIGGER trg_products_updated BEFORE UPDATE ON public.products FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
+
 -- ================= 20260719122026_2f708304-9637-4b0b-9957-b2ceee63653e.sql =================
+
 
 REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.update_updated_at_column() FROM PUBLIC, anon, authenticated;
@@ -228,7 +232,9 @@ GRANT EXECUTE ON FUNCTION public.has_role(UUID, app_role) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.record_sale(UUID, NUMERIC, NUMERIC, UUID, BOOLEAN) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.record_restock(UUID, NUMERIC, TEXT) TO authenticated;
 
+
 -- ================= 20260720132108_f833b640-51b1-4a65-b51c-cb6e23789d76.sql =================
+
 
 -- Switch record_sale and record_restock to SECURITY INVOKER so they run under the caller's RLS.
 CREATE OR REPLACE FUNCTION public.record_sale(_product_id uuid, _quantity numeric, _unit_price numeric, _customer_id uuid, _is_credit boolean)
@@ -284,7 +290,9 @@ $function$;
 REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.update_updated_at_column() FROM PUBLIC, anon, authenticated;
 
+
 -- ================= 20260721191638_b32516dc-a40c-4099-a244-46b5df871127.sql =================
+
 
 ALTER TYPE public.expense_category ADD VALUE IF NOT EXISTS 'wages';
 ALTER TYPE public.expense_category ADD VALUE IF NOT EXISTS 'market_fee';
@@ -313,9 +321,13 @@ CREATE POLICY "own ai interactions insert" ON public.ai_interactions
 
 CREATE INDEX ai_interactions_user_created_idx ON public.ai_interactions (user_id, created_at DESC);
 
+
 -- ================= 20260722083920_7835e4eb-c217-441b-ae83-4cc47a9c9215.sql =================
+
 ALTER TABLE public.sales ADD COLUMN IF NOT EXISTS due_date DATE;
+
 -- ================= 20260727162910_c7d23f97-aab5-4aa0-88e4-4c5363bf8598.sql =================
+
 
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
@@ -368,7 +380,9 @@ BEGIN
   END IF;
 END $$;
 
+
 -- ================= 20260727164359_7fe64a38-2e69-4667-ae5f-06e25770e2a2.sql =================
+
 
 -- system_prompts table
 CREATE TABLE public.system_prompts (
@@ -481,9 +495,13 @@ BEGIN
 END;
 $$;
 
+
 -- ================= 20260728052816_4af73d03-651d-4de8-8057-f362be415d53.sql =================
+
 INSERT INTO public.user_roles (user_id, role) VALUES ('a3dae86f-f39e-478f-b02a-09d9d053d90c', 'admin'), ('8de28b3a-e37b-4176-a7bc-4650d2aae449', 'admin') ON CONFLICT (user_id, role) DO NOTHING;
+
 -- ================= 20260801104042_f3a4f22d-6861-4fd5-bb87-79b64d2c4df5.sql =================
+
 -- Idempotent schema safety net: creates anything missing, never drops data.
 
 DO $$ BEGIN
@@ -691,3 +709,35 @@ CREATE TRIGGER update_system_prompts_updated_at BEFORE UPDATE ON public.system_p
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- ================= 20260817063335_cf391a0b-36a1-40af-90db-44aba2b5c62b.sql =================
+
+ALTER TABLE public.stock_history ADD COLUMN IF NOT EXISTS value numeric NOT NULL DEFAULT 0;
+ALTER TABLE public.stock_history ADD COLUMN IF NOT EXISTS reason text;
+
+CREATE OR REPLACE FUNCTION public.record_stock_loss(_product_id uuid, _quantity numeric, _reason text, _note text)
+RETURNS void
+LANGUAGE plpgsql
+SET search_path TO 'public'
+AS $$
+DECLARE _uid uuid := auth.uid(); _p RECORD;
+BEGIN
+  IF _uid IS NULL THEN RAISE EXCEPTION 'not authenticated'; END IF;
+  IF _quantity <= 0 THEN RAISE EXCEPTION 'quantity must be positive'; END IF;
+  IF COALESCE(_reason,'') NOT IN ('spoilage','damage','theft','personal_use','correction') THEN
+    RAISE EXCEPTION 'invalid reason';
+  END IF;
+
+  SELECT * INTO _p FROM public.products WHERE id = _product_id AND user_id = _uid FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'product not found'; END IF;
+  IF _p.current_stock < _quantity THEN RAISE EXCEPTION 'quantity exceeds current stock'; END IF;
+
+  UPDATE public.products SET current_stock = current_stock - _quantity, updated_at = now() WHERE id = _product_id;
+
+  INSERT INTO public.stock_history (user_id, product_id, change_type, quantity, note, reason, value)
+  VALUES (_uid, _product_id, 'loss', -_quantity, _note, _reason, _quantity * _p.cost_price);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.record_stock_loss(uuid, numeric, text, text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.record_stock_loss(uuid, numeric, text, text) TO authenticated;
