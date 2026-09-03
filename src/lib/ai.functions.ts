@@ -51,6 +51,9 @@ async function buildVendorContext(supabase: any, userId: string) {
     outstandingCredit: owed,
     customersOwing: owingCustomers,
     bestSeller: bestSeller ? { name: bestSeller[0], revenue: bestSeller[1] } : null,
+    wasteValue: lossValue,
+    wasteEvents: lossRows.length,
+    worstWaste: worstLoss ? { name: worstLoss[0], value: worstLoss[1] } : null,
   };
 }
 
@@ -61,6 +64,9 @@ function contextToSummary(c: Awaited<ReturnType<typeof buildVendorContext>>) {
     `Estimated profit this month: KES ${Math.round(c.profit).toLocaleString()}.`,
     `Active products: ${c.productCount}. Low-stock items: ${c.lowStockCount}${c.lowStockItems.length ? ` (${c.lowStockItems.join(", ")})` : ""}.`,
     `Outstanding customer credit (deni): KES ${Math.round(c.outstandingCredit).toLocaleString()} across ${c.customersOwing} customer(s).`,
+    c.wasteEvents > 0
+      ? `Stock loss / spoilage this month: KES ${Math.round(c.wasteValue).toLocaleString()} across ${c.wasteEvents} record(s)${c.worstWaste ? `, worst item ${c.worstWaste.name} (KES ${Math.round(c.worstWaste.value).toLocaleString()})` : ""}.`
+      : `No stock loss or spoilage recorded this month.`,
     c.bestSeller ? `Best-selling product last 30 days: ${c.bestSeller.name} (KES ${Math.round(c.bestSeller.revenue).toLocaleString()}).` : `No sales in the last 30 days.`,
   ].join(" ");
 }
