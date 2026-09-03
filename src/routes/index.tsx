@@ -4,7 +4,6 @@ import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { Sprout, Scale, Handshake, type LucideIcon } from "lucide-react";
 import showcase1 from "@/assets/vendor-showcase-1.jpg";
-import showcase2 from "@/assets/vendor-showcase-2.jpg";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
@@ -59,10 +58,6 @@ function Landing() {
           <Link to="/auth/signin" className="tap-target inline-flex flex-1 items-center justify-center rounded-2xl border-2 border-primary-foreground/60 bg-foreground/30 px-6 text-base font-bold text-primary-foreground backdrop-blur">
             {t("signIn")}
           </Link>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <img src={showcase2} alt="Vendor holding a crate of fresh green peppers" className="h-32 w-full rounded-2xl object-cover sm:h-44" loading="lazy" />
-          <img src={showcase1} alt="Fruits and vegetables displayed at a market stall" className="h-32 w-full rounded-2xl object-cover sm:h-44" loading="lazy" />
         </div>
       </main>
     </div>

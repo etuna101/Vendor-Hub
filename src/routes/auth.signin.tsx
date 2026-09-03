@@ -19,14 +19,14 @@ function SignIn() {
   const { signIn } = useAuth();
   const nav = useNavigate();
   const { next } = Route.useSearch();
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error } = await signIn({ phone, password });
+    const { error } = await signIn({ email, password });
     if (error) { setLoading(false); return toast.error(error); }
     if (next) {
       setLoading(false);
@@ -61,9 +61,9 @@ function SignIn() {
         <p className="mt-1 text-muted-foreground">{t("tagline")}</p>
       </div>
       <form onSubmit={submit} className="mt-4 flex flex-col gap-4 rounded-3xl border border-primary-foreground/20 bg-card/95 p-5 shadow-lg backdrop-blur-md">
-        <Field label={t("phone")}>
-          <input type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)}
-            placeholder="07XX XXX XXX"
+        <Field label="Email address">
+          <input type="email" required autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
             className="tap-target w-full rounded-2xl border border-input bg-background px-4 text-base" />
         </Field>
         <Field label={t("password")}>
