@@ -63,14 +63,34 @@ function Reports() {
 
       <Section
         title={t("profitEstimate")}
-        onCSV={() => downloadCSV("profit", ["Period", "Sales", "Expenses", "Profit"], [[periodLabel, data?.salesTotal ?? 0, data?.expenseTotal ?? 0, data?.profit ?? 0]])}
-        onPDF={() => downloadPDF(`${t("profitEstimate")} — ${periodLabel}`, [["Metric", "Value"]], [[t("totalSales"), formatKsh(data?.salesTotal ?? 0)], [t("totalExpenses"), formatKsh(data?.expenseTotal ?? 0)], [t("profit"), formatKsh(data?.profit ?? 0)]])}
+        onCSV={() => downloadCSV("profit", ["Period", "Sales", "Expenses", "Waste", "Profit"], [[periodLabel, data?.salesTotal ?? 0, data?.expenseTotal ?? 0, data?.wasteTotal ?? 0, data?.profit ?? 0]])}
+        onPDF={() => downloadPDF(`${t("profitEstimate")} — ${periodLabel}`, [["Metric", "Value"]], [[t("totalSales"), formatKsh(data?.salesTotal ?? 0)], [t("totalExpenses"), formatKsh(data?.expenseTotal ?? 0)], [wasteTitle, formatKsh(data?.wasteTotal ?? 0)], [t("profit"), formatKsh(data?.profit ?? 0)]])}
       >
         <div className="rounded-2xl bg-primary p-5 text-primary-foreground">
           <div className="text-sm font-semibold opacity-90">{t("profitCaption")} {periodLabel}</div>
           <div className="mt-1 text-4xl font-extrabold">{formatKsh(data?.profit ?? 0)}</div>
+          <div className="mt-1 text-xs font-semibold opacity-90">
+            {lang === "sw" ? "Mauzo − matumizi − hasara ya mboga" : "Sales − expenses − stock losses"}
+          </div>
         </div>
+        <SmallLine label={wasteTitle} value={formatKsh(data?.wasteTotal ?? 0)} />
       </Section>
+
+      <Section
+        title={wasteTitle}
+        onCSV={() => downloadCSV("waste", ["Date", "Product", "Quantity", "Reason", "Value", "Note"], (data?.losses ?? []).map((r: any) => [new Date(r.date).toLocaleDateString(), r.products?.name ?? "", Math.abs(Number(r.quantity)), r.reason ?? "", Math.abs(Number(r.value ?? 0)), r.note ?? ""]))}
+        onPDF={() => downloadPDF(`${wasteTitle} — ${periodLabel}`, [["Date", "Product", "Qty", "Reason", "Value"]], (data?.losses ?? []).map((r: any) => [new Date(r.date).toLocaleDateString(), r.products?.name ?? "", String(Math.abs(Number(r.quantity))), r.reason ?? "", formatKsh(Math.abs(Number(r.value ?? 0)))]), `${wasteTitle}: ${formatKsh(data?.wasteTotal ?? 0)}`)}
+      >
+        <BigLine label={lang === "sw" ? "Thamani ya hasara" : "Value lost"} value={formatKsh(data?.wasteTotal ?? 0)} />
+        <SmallLine label={lang === "sw" ? "Rekodi za hasara" : "Loss records"} value={String((data?.losses ?? []).length)} />
+        <SmallLine label={lang === "sw" ? "Hasara kama % ya mauzo" : "Waste as % of sales"} value={`${(data?.wastePct ?? 0).toFixed(1)}%`} />
+        {(data?.losses ?? []).length === 0 && (
+          <p className="text-sm text-muted-foreground">
+            {lang === "sw" ? "Hakuna hasara iliyorekodiwa kwa kipindi hiki." : "No stock losses recorded for this period."}
+          </p>
+        )}
+      </Section>
+
 
       <Section
         title={t("inventoryStatus")}
