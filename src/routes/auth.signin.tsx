@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 import showcase2 from "@/assets/vendor-showcase-2.jpg";
 
 export const Route = createFileRoute("/auth/signin")({
@@ -22,6 +23,7 @@ function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,8 +69,13 @@ function SignIn() {
             className="tap-target w-full rounded-2xl border border-input bg-background px-4 text-base" />
         </Field>
         <Field label={t("password")}>
-          <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
-            className="tap-target w-full rounded-2xl border border-input bg-background px-4 text-base" />
+          <div className="relative">
+            <input type={showPassword ? "text" : "password"} required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password"
+              className="tap-target w-full rounded-2xl border border-input bg-background px-4 pr-12 text-base" />
+            <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} title={showPassword ? "Hide password" : "Show password"} className="absolute right-2 top-1/2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground">
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
         </Field>
         <button type="submit" disabled={loading} className="tap-target mt-2 rounded-2xl bg-primary font-bold text-primary-foreground disabled:opacity-60">
           {loading ? "…" : t("signIn")}

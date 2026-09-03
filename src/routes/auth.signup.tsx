@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 import showcase1 from "@/assets/vendor-showcase-1.jpg";
 
 export const Route = createFileRoute("/auth/signup")({
@@ -22,6 +23,7 @@ function SignUp() {
   const nav = useNavigate();
   const [form, setForm] = useState({ fullName: "", businessName: "", email: "", phone: "", password: "" });
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const set = (key: keyof typeof form) => (event: React.ChangeEvent<HTMLInputElement>) =>
     setForm((current) => ({ ...current, [key]: event.target.value }));
@@ -70,7 +72,12 @@ function SignUp() {
               <input type="tel" required value={form.phone} onChange={set("phone")} placeholder="07XX XXX XXX" className="tap-target w-full rounded-2xl border border-input bg-card px-4 text-base" />
             </Field>
             <Field label={t("password")}>
-              <input type="password" required minLength={6} value={form.password} onChange={set("password")} className="tap-target w-full rounded-2xl border border-input bg-card px-4 text-base" />
+              <div className="relative">
+                <input type={showPassword ? "text" : "password"} required minLength={6} value={form.password} onChange={set("password")} autoComplete="new-password" className="tap-target w-full rounded-2xl border border-input bg-card px-4 pr-12 text-base" />
+                <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} title={showPassword ? "Hide password" : "Show password"} className="absolute right-2 top-1/2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground">
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
             </Field>
             <p className="-mt-1 text-xs text-muted-foreground">We will send a verification link to this email before you can sign in.</p>
             <button type="submit" disabled={loading} className="tap-target mt-2 rounded-2xl bg-primary font-bold text-primary-foreground disabled:opacity-60">

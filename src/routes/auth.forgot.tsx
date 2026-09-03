@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/auth/forgot")({ component: Forgot });
 
@@ -12,6 +13,7 @@ function Forgot() {
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
   const [pw, setPw] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <div className="mx-auto flex min-h-screen max-w-md flex-col px-5 pt-8 pb-10">
@@ -36,7 +38,12 @@ function Forgot() {
             <input required value={code} onChange={(e) => setCode(e.target.value)} className="tap-target w-full rounded-2xl border border-input bg-card px-4 text-base" />
           </Field>
           <Field label={t("newPassword")}>
-            <input type="password" required minLength={6} value={pw} onChange={(e) => setPw(e.target.value)} className="tap-target w-full rounded-2xl border border-input bg-card px-4 text-base" />
+            <div className="relative">
+              <input type={showPassword ? "text" : "password"} required minLength={6} value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" className="tap-target w-full rounded-2xl border border-input bg-card px-4 pr-12 text-base" />
+              <button type="button" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"} title={showPassword ? "Hide password" : "Show password"} className="absolute right-2 top-1/2 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground">
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </Field>
           <button className="tap-target rounded-2xl bg-primary font-bold text-primary-foreground">{t("verifyCode")}</button>
           <p className="text-xs text-muted-foreground">
