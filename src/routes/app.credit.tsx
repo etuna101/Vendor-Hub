@@ -1,14 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { recordCreditPaymentOfflineFirst } from "@/lib/offline/actions";
 
 import { useI18n } from "@/lib/i18n";
 import { formatKsh } from "@/lib/format";
 import {
-  CreditCard, CheckCircle2, AlertTriangle, Coins, Users, ShoppingBag,
-  Search, BellRing, MessageSquare, Mail, Smartphone,
+  CreditCard,
+  CheckCircle2,
+  AlertTriangle,
+  Coins,
+  Users,
+  ShoppingBag,
+  Search,
+  BellRing,
+  MessageSquare,
+  Mail,
+  Smartphone,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Modal } from "./app.inventory";
@@ -36,16 +45,23 @@ function dueLabel(row: CreditRow, lang: string) {
   if (d === 0) return { text: lang === "en" ? "Due today" : "Inalipwa leo", tone: "warn" as const };
   if (d < 0)
     return {
-      text: lang === "en" ? `Overdue by ${Math.abs(d)} day${Math.abs(d) === 1 ? "" : "s"}` : `Imechelewa siku ${Math.abs(d)}`,
+      text:
+        lang === "en"
+          ? `Overdue by ${Math.abs(d)} day${Math.abs(d) === 1 ? "" : "s"}`
+          : `Imechelewa siku ${Math.abs(d)}`,
       tone: "danger" as const,
     };
-  return { text: lang === "en" ? `Due in ${d} day${d === 1 ? "" : "s"}` : `Inalipwa baada ya siku ${d}`, tone: "ok" as const };
+  return {
+    text: lang === "en" ? `Due in ${d} day${d === 1 ? "" : "s"}` : `Inalipwa baada ya siku ${d}`,
+    tone: "ok" as const,
+  };
 }
 
 function CreditScreen() {
   const { t, lang } = useI18n();
   const qc = useQueryClient();
   const [payingFor, setPayingFor] = useState<CreditRow | null>(null);
+  const [mpesaFor, setMpesaFor] = useState<CreditRow | null>(null);
   const [remindFor, setRemindFor] = useState<CreditRow | null>(null);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"all" | "owing" | "cleared">("all");
@@ -55,25 +71,33 @@ function CreditScreen() {
     queryFn: async () => {
       const { data: sales, error } = await supabase
         .from("sales")
-        .select("id, product_name_snapshot, total, date, due_date, credit_paid, customer_id, customers(name, phone)")
+        .select(
+          "id, product_name_snapshot, total, date, due_date, credit_paid, customer_id, customers(name, phone)",
+        )
         .eq("is_credit", true)
         .order("date", { ascending: false });
       if (error) throw error;
       const ids = (sales ?? []).map((s: any) => s.id);
       let payments: any[] = [];
       if (ids.length) {
-        const { data: pays } = await supabase.from("credit_payments").select("sale_id, amount").in("sale_id", ids);
+        const { data: pays } = await supabase
+          .from("credit_payments")
+          .select("sale_id, amount")
+          .in("sale_id", ids);
         payments = pays ?? [];
       }
       const paidBySale = new Map<string, number>();
-      for (const p of payments) paidBySale.set(p.sale_id, (paidBySale.get(p.sale_id) ?? 0) + Number(p.amount));
-      const today = new Date(); today.setHours(0, 0, 0, 0);
+      for (const p of payments)
+        paidBySale.set(p.sale_id, (paidBySale.get(p.sale_id) ?? 0) + Number(p.amount));
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
       return (sales ?? []).map((s: any) => {
         const paid = paidBySale.get(s.id) ?? 0;
         const balance = s.credit_paid ? 0 : Math.max(0, Number(s.total) - paid);
         let daysDiff: number | null = null;
         if (s.due_date) {
-          const due = new Date(s.due_date); due.setHours(0, 0, 0, 0);
+          const due = new Date(s.due_date);
+          due.setHours(0, 0, 0, 0);
           daysDiff = Math.round((due.getTime() - today.getTime()) / 86400000);
         }
         const overdue = !s.credit_paid && daysDiff !== null && daysDiff < 0 && balance > 0;
@@ -104,11 +128,16 @@ function CreditScreen() {
     if (r.balance > 0) {
       const { data: u } = await supabase.auth.getUser();
       const { error: pe } = await supabase.from("credit_payments").insert({
-        user_id: u.user!.id, sale_id: r.id, amount: r.balance,
+        user_id: u.user!.id,
+        sale_id: r.id,
+        amount: r.balance,
       } as any);
       if (pe) return toast.error(pe.message);
     }
-    const { error } = await supabase.from("sales").update({ credit_paid: true } as any).eq("id", r.id);
+    const { error } = await supabase
+      .from("sales")
+      .update({ credit_paid: true } as any)
+      .eq("id", r.id);
     if (error) return toast.error(error.message);
     toast.success(lang === "en" ? "Marked paid" : "Imelipwa");
     qc.invalidateQueries();
@@ -127,9 +156,21 @@ function CreditScreen() {
           KES {Math.round(outstanding).toLocaleString("en-KE")}
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-background/10 p-3">
-          <Metric icon={<Users size={16} />} value={customersOwing} label={lang === "en" ? "owing" : "wanadai"} />
-          <Metric icon={<ShoppingBag size={16} />} value={owing.length} label={lang === "en" ? "sales" : "mauzo"} />
-          <Metric icon={<CreditCard size={16} />} value={cleared.length} label={lang === "en" ? "cleared" : "zilizolipwa"} />
+          <Metric
+            icon={<Users size={16} />}
+            value={customersOwing}
+            label={lang === "en" ? "owing" : "wanadai"}
+          />
+          <Metric
+            icon={<ShoppingBag size={16} />}
+            value={owing.length}
+            label={lang === "en" ? "sales" : "mauzo"}
+          />
+          <Metric
+            icon={<CreditCard size={16} />}
+            value={cleared.length}
+            label={lang === "en" ? "cleared" : "zilizolipwa"}
+          />
         </div>
         {overdueCount > 0 && (
           <div className="mt-3 flex items-center gap-2 rounded-xl bg-danger px-3 py-2 text-sm font-bold text-danger-foreground">
@@ -144,7 +185,10 @@ function CreditScreen() {
       {/* Search + filters */}
       <div className="flex flex-col gap-2">
         <div className="relative">
-          <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search
+            size={18}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+          />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -153,16 +197,20 @@ function CreditScreen() {
           />
         </div>
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {([
-            ["all", lang === "en" ? "All" : "Zote", rows.length],
-            ["owing", lang === "en" ? "Owing" : "Wanadai", owing.length],
-            ["cleared", lang === "en" ? "Cleared" : "Zilizolipwa", cleared.length],
-          ] as const).map(([key, label, count]) => (
+          {(
+            [
+              ["all", lang === "en" ? "All" : "Zote", rows.length],
+              ["owing", lang === "en" ? "Owing" : "Wanadai", owing.length],
+              ["cleared", lang === "en" ? "Cleared" : "Zilizolipwa", cleared.length],
+            ] as const
+          ).map(([key, label, count]) => (
             <button
               key={key}
               onClick={() => setTab(key)}
               className={`shrink-0 rounded-full px-4 py-2 text-sm font-bold ${
-                tab === key ? "bg-primary text-primary-foreground" : "border border-border bg-card text-muted-foreground"
+                tab === key
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border bg-card text-muted-foreground"
               }`}
             >
               {label} ({count})
@@ -176,7 +224,9 @@ function CreditScreen() {
           <div className="grid h-16 w-16 place-items-center rounded-full bg-secondary">
             <CreditCard className="text-primary" />
           </div>
-          <h2 className="text-lg font-extrabold">{lang === "en" ? "No credit records" : "Hakuna rekodi za deni"}</h2>
+          <h2 className="text-lg font-extrabold">
+            {lang === "en" ? "No credit records" : "Hakuna rekodi za deni"}
+          </h2>
           <p className="max-w-xs text-sm text-muted-foreground">
             {lang === "en"
               ? "Credit records will appear when customers buy on credit"
@@ -192,7 +242,10 @@ function CreditScreen() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold">{s.customers?.name ?? (lang === "en" ? "Unknown customer" : "Mteja hajulikani")}</span>
+                      <span className="font-bold">
+                        {s.customers?.name ??
+                          (lang === "en" ? "Unknown customer" : "Mteja hajulikani")}
+                      </span>
                       {badge && (
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-bold ${
@@ -217,12 +270,18 @@ function CreditScreen() {
                       ) : null}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {s.product_name_snapshot} · {new Date(s.date).toLocaleDateString(lang === "sw" ? "sw-KE" : "en-KE")}
+                      {s.product_name_snapshot} ·{" "}
+                      {new Date(s.date).toLocaleDateString(lang === "sw" ? "sw-KE" : "en-KE")}
                     </div>
-                    {s.customers?.phone && <div className="text-xs text-muted-foreground">{s.customers.phone}</div>}
+                    {s.customers?.phone && (
+                      <div className="text-xs text-muted-foreground">{s.customers.phone}</div>
+                    )}
                     {s.due_date && (
-                      <div className={`text-xs ${s.overdue ? "font-bold text-danger" : "text-muted-foreground"}`}>
-                        {lang === "en" ? "Due" : "Tarehe"}: {new Date(s.due_date).toLocaleDateString(lang === "sw" ? "sw-KE" : "en-KE")}
+                      <div
+                        className={`text-xs ${s.overdue ? "font-bold text-danger" : "text-muted-foreground"}`}
+                      >
+                        {lang === "en" ? "Due" : "Tarehe"}:{" "}
+                        {new Date(s.due_date).toLocaleDateString(lang === "sw" ? "sw-KE" : "en-KE")}
                       </div>
                     )}
                   </div>
@@ -236,7 +295,7 @@ function CreditScreen() {
                   </div>
                 </div>
                 {!s.credit_paid && s.balance > 0 && (
-                  <div className="mt-3 grid grid-cols-3 gap-2">
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
                     <button
                       onClick={() => setRemindFor(s)}
                       className="tap-target inline-flex items-center justify-center gap-1.5 rounded-xl bg-accent text-sm font-bold text-accent-foreground"
@@ -248,6 +307,12 @@ function CreditScreen() {
                       className="tap-target inline-flex items-center justify-center gap-1.5 rounded-xl border border-primary text-sm font-bold text-primary"
                     >
                       <Coins size={16} /> {t("partialPay")}
+                    </button>
+                    <button
+                      onClick={() => setMpesaFor(s)}
+                      className="tap-target inline-flex items-center justify-center gap-1.5 rounded-xl border border-primary bg-primary/10 text-sm font-bold text-primary"
+                    >
+                      <Smartphone size={16} /> M-Pesa
                     </button>
                     <button
                       onClick={() => markPaid(s)}
@@ -267,7 +332,17 @@ function CreditScreen() {
         <PaymentDialog
           row={payingFor}
           onClose={() => setPayingFor(null)}
-          onSaved={() => { qc.invalidateQueries(); setPayingFor(null); }}
+          onSaved={() => {
+            qc.invalidateQueries();
+            setPayingFor(null);
+          }}
+        />
+      )}
+      {mpesaFor && (
+        <MpesaPaymentDialog
+          row={mpesaFor}
+          onClose={() => setMpesaFor(null)}
+          onUpdated={() => qc.invalidateQueries()}
         />
       )}
       {remindFor && <ReminderDialog row={remindFor} onClose={() => setRemindFor(null)} />}
@@ -290,7 +365,11 @@ function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void 
   const [channel, setChannel] = useState<"sms" | "whatsapp" | "email">("sms");
   const phone = row.customers?.phone ?? "";
   const name = row.customers?.name ?? (lang === "en" ? "Customer" : "Mteja");
-  const due = row.due_date ? new Date(row.due_date).toLocaleDateString(lang === "sw" ? "sw-KE" : "en-KE") : lang === "en" ? "as agreed" : "kama tulivyoagana";
+  const due = row.due_date
+    ? new Date(row.due_date).toLocaleDateString(lang === "sw" ? "sw-KE" : "en-KE")
+    : lang === "en"
+      ? "as agreed"
+      : "kama tulivyoagana";
 
   const defaultMessage =
     lang === "en"
@@ -334,7 +413,9 @@ function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void 
               key={c.key}
               onClick={() => setChannel(c.key)}
               className={`tap-target inline-flex items-center justify-center gap-1.5 rounded-xl text-sm font-bold ${
-                channel === c.key ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground"
+                channel === c.key
+                  ? "bg-primary text-primary-foreground"
+                  : "border border-border text-muted-foreground"
               }`}
             >
               {c.icon} {c.label}
@@ -352,11 +433,16 @@ function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void 
         </label>
         {!phone && channel !== "email" && (
           <p className="text-xs font-semibold text-danger">
-            {lang === "en" ? "No phone number saved for this customer." : "Hakuna namba ya simu ya mteja huyu."}
+            {lang === "en"
+              ? "No phone number saved for this customer."
+              : "Hakuna namba ya simu ya mteja huyu."}
           </p>
         )}
         <div className="mt-1 flex gap-2">
-          <button onClick={onClose} className="tap-target flex-1 rounded-2xl border border-border font-semibold">
+          <button
+            onClick={onClose}
+            className="tap-target flex-1 rounded-2xl border border-border font-semibold"
+          >
             {lang === "en" ? "Cancel" : "Ghairi"}
           </button>
           <button
@@ -372,14 +458,23 @@ function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void 
   );
 }
 
-function PaymentDialog({ row, onClose, onSaved }: { row: CreditRow; onClose: () => void; onSaved: () => void }) {
+function PaymentDialog({
+  row,
+  onClose,
+  onSaved,
+}: {
+  row: CreditRow;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
   const { t, lang } = useI18n();
   const [amount, setAmount] = useState<number>(row.balance);
   const [saving, setSaving] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount || amount <= 0) return toast.error(lang === "en" ? "Enter an amount" : "Weka kiasi");
+    if (!amount || amount <= 0)
+      return toast.error(lang === "en" ? "Enter an amount" : "Weka kiasi");
     const capped = Math.min(amount, row.balance);
     setSaving(true);
     try {
@@ -390,8 +485,12 @@ function PaymentDialog({ row, onClose, onSaved }: { row: CreditRow; onClose: () 
       });
       toast.success(
         res.queued
-          ? lang === "en" ? "Saved offline — will sync" : "Imehifadhiwa — itasawazishwa"
-          : lang === "en" ? "Payment recorded" : "Malipo yamehifadhiwa",
+          ? lang === "en"
+            ? "Saved offline — will sync"
+            : "Imehifadhiwa — itasawazishwa"
+          : lang === "en"
+            ? "Payment recorded"
+            : "Malipo yamehifadhiwa",
       );
       onSaved();
     } catch (err: any) {
@@ -421,10 +520,194 @@ function PaymentDialog({ row, onClose, onSaved }: { row: CreditRow; onClose: () 
           />
         </label>
         <div className="mt-2 flex gap-2">
-          <button type="button" onClick={onClose} className="tap-target flex-1 rounded-2xl border border-border font-semibold">{t("cancel")}</button>
-          <button disabled={saving} className="tap-target flex-1 rounded-2xl bg-primary font-bold text-primary-foreground">{t("save")}</button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="tap-target flex-1 rounded-2xl border border-border font-semibold"
+          >
+            {t("cancel")}
+          </button>
+          <button
+            disabled={saving}
+            className="tap-target flex-1 rounded-2xl bg-primary font-bold text-primary-foreground"
+          >
+            {t("save")}
+          </button>
         </div>
       </form>
     </Modal>
   );
+}
+
+function MpesaPaymentDialog({
+  row,
+  onClose,
+  onUpdated,
+}: {
+  row: CreditRow;
+  onClose: () => void;
+  onUpdated: () => void;
+}) {
+  const { lang } = useI18n();
+  const [amount, setAmount] = useState<number>(Math.round(row.balance));
+  const [paymentId, setPaymentId] = useState<string | null>(null);
+  const [state, setState] = useState<"idle" | "sending" | "pending" | "success" | "failed">("idle");
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (!paymentId || state !== "pending") return;
+    let active = true;
+    let attempts = 0;
+    const poll = async () => {
+      attempts++;
+      const { data, error } = await supabase
+        .from("credit_payments")
+        .select("status, result_description")
+        .eq("id", paymentId)
+        .maybeSingle();
+      if (!active) return;
+      const status = (data as any)?.status;
+      if (error) {
+        setState("failed");
+        setMessage(
+          lang === "en" ? "Could not check payment status." : "Hali ya malipo haikupatikana.",
+        );
+        return;
+      }
+      if (status === "SUCCESS") {
+        setState("success");
+        setMessage(lang === "en" ? "Payment confirmed." : "Malipo yamethibitishwa.");
+        onUpdated();
+        return;
+      }
+      if (status === "FAILED" || status === "CANCELLED") {
+        setState("failed");
+        setMessage(
+          (data as any)?.result_description ??
+            (lang === "en" ? "Payment was not completed." : "Malipo hayakukamilika."),
+        );
+        onUpdated();
+        return;
+      }
+      if (attempts >= 40) {
+        setState("failed");
+        setMessage(
+          lang === "en"
+            ? "We have not received confirmation yet. Check again shortly."
+            : "Bado hatujapokea uthibitisho. Jaribu tena baadaye.",
+        );
+        return;
+      }
+      window.setTimeout(poll, 3000);
+    };
+    poll();
+    return () => {
+      active = false;
+    };
+  }, [paymentId, state, lang, onUpdated]);
+
+  const initiate = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!Number.isInteger(amount) || amount <= 0 || amount > row.balance) {
+      setMessage(
+        lang === "en"
+          ? "Enter a whole-KES amount up to the outstanding balance."
+          : "Weka kiasi kamili cha KES kisichozidi salio.",
+      );
+      return;
+    }
+    setState("sending");
+    setMessage("");
+    const { data, error } = await supabase.functions.invoke("mpesa-stk", {
+      body: { sale_id: row.id, amount },
+    });
+    if (error || !(data as any)?.payment_id) {
+      setState("failed");
+      setMessage(
+        (data as any)?.error ??
+          error?.message ??
+          (lang === "en" ? "Could not start M-Pesa." : "M-Pesa haikuanza."),
+      );
+      return;
+    }
+    setPaymentId((data as any).payment_id);
+    setState("pending");
+    setMessage(
+      lang === "en"
+        ? "Check the customer phone and enter the M-Pesa PIN. We will confirm the result here."
+        : "Angalia simu ya mteja na uweke PIN ya M-Pesa. Tutathibitisha hapa.",
+    );
+  };
+
+  return (
+    <Modal onClose={onClose} title="M-Pesa STK Push">
+      <form onSubmit={initiate} className="flex flex-col gap-3">
+        <div className="card-soft flex items-center justify-between bg-secondary p-4">
+          <span className="text-sm font-semibold">
+            {lang === "en" ? "Outstanding balance" : "Salio"}
+          </span>
+          <span className="text-xl font-extrabold text-primary">{formatKsh(row.balance)}</span>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          {row.customers?.phone ??
+            (lang === "en"
+              ? "No customer phone number is saved."
+              : "Namba ya simu ya mteja haijahifadhiwa.")}
+        </p>
+        <label className="flex flex-col gap-1">
+          <span className="text-sm font-semibold">
+            {lang === "en" ? "Amount (KES)" : "Kiasi (KES)"}
+          </span>
+          <input
+            type="number"
+            min="1"
+            step="1"
+            required
+            disabled={state === "sending" || state === "pending"}
+            value={amount}
+            onChange={(e) => setAmount(Number(e.target.value))}
+            className="tap-target rounded-xl border border-input bg-card px-4 text-xl font-bold"
+          />
+        </label>
+        {message && (
+          <p
+            className={`rounded-xl p-3 text-sm font-semibold ${state === "failed" ? "bg-danger/10 text-danger" : state === "success" ? "bg-primary/10 text-primary" : "bg-secondary"}`}
+          >
+            {message}
+          </p>
+        )}
+        <div className="mt-2 flex gap-2">
+          <button
+            type="button"
+            onClick={onClose}
+            className="tap-target flex-1 rounded-2xl border border-border font-semibold"
+          >
+            {state === "success" || state === "failed"
+              ? lang === "en"
+                ? "Close"
+                : "Funga"
+              : tCancel(lang)}
+          </button>
+          {state !== "success" && state !== "pending" && (
+            <button
+              disabled={state === "sending" || !row.customers?.phone}
+              className="tap-target flex-1 rounded-2xl bg-primary font-bold text-primary-foreground disabled:opacity-60"
+            >
+              {state === "sending"
+                ? lang === "en"
+                  ? "Sending..."
+                  : "Inatuma..."
+                : lang === "en"
+                  ? "Pay now"
+                  : "Lipa sasa"}
+            </button>
+          )}
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function tCancel(lang: string) {
+  return lang === "en" ? "Cancel" : "Ghairi";
 }

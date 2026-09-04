@@ -1,1 +1,16 @@
-project_id = "xqjcvilgexoqkdhfpvfh"
+project_id = "ibivokyralgxxqkfdcpm"
+
+[functions.mpesa-stk]
+verify_jwt = true
+
+# Daraja cannot attach a Supabase JWT to its callback. The handler validates the
+# DARAJA_CALLBACK_TOKEN query parameter instead.
+[functions.mpesa-callback]
+verify_jwt = false
+
+[functions.send-sms]
+verify_jwt = true
+
+# Invoke this only from a trusted scheduler with the CRON_SECRET header.
+[functions.debt-reminders]
+verify_jwt = false
