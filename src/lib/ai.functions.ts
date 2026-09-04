@@ -71,6 +71,67 @@ function contextToSummary(c: Awaited<ReturnType<typeof buildVendorContext>>) {
   ].join(" ");
 }
 
+function money(value: number) {
+  return `KES ${Math.round(value).toLocaleString()}`;
+}
+
+function fallbackInsight(context: Awaited<ReturnType<typeof buildVendorContext>>, lang: Lang) {
+  const profit = context.salesTotal - context.expensesTotal;
+  if (context.lowStockItems.length) {
+    return lang === "sw"
+      ? `Kipaumbele cha leo: nunua ${context.lowStockItems.join(", ")} kabla haijaisha kabisa.`
+      : `Today's priority: restock ${context.lowStockItems.join(", ")} before it runs out.`;
+  }
+  if (context.outstandingCredit > context.salesTotal * 0.25 && context.outstandingCredit > 0) {
+    return lang === "sw"
+      ? `Deni la ${money(context.outstandingCredit)} ni kubwa; fuatilia wateja ${context.customersOwing} wanaodaiwa leo.`
+      : `Credit of ${money(context.outstandingCredit)} is high; follow up with your ${context.customersOwing} customers who owe today.`;
+  }
+  if (profit < 0) {
+    return lang === "sw"
+      ? `Matumizi yako yamezidi mauzo kwa ${money(Math.abs(profit))} mwezi huu; rekodi kila matumizi na punguza yasiyo ya lazima.`
+      : `Expenses exceed sales by ${money(Math.abs(profit))} this month; record every cost and reduce non-essential spending.`;
+  }
+  if (context.bestSeller) {
+    return lang === "sw"
+      ? `${context.bestSeller.name} ndiyo bidhaa inayouza zaidi; hakikisha inapatikana sokoni.`
+      : `${context.bestSeller.name} is your best-selling product; keep it available at the stall.`;
+  }
+  return lang === "sw"
+    ? "Anza kurekodi mauzo na matumizi ya leo ili upate ushauri wa biashara."
+    : "Start recording today's sales and expenses to receive practical business advice.";
+}
+
+function fallbackAnswer(context: Awaited<ReturnType<typeof buildVendorContext>>, question: string, lang: Lang) {
+  const q = question.toLowerCase();
+  const sw = lang === "sw";
+  if (/restock|stock|low|isha|bidhaa gani|nunue/.test(q)) {
+    const items = context.lowStockItems.length
+      ? context.lowStockItems.join(", ")
+      : sw ? "hakuna bidhaa chini ya kiwango" : "no products below their reorder level";
+    return sw
+      ? `Bidhaa za kuangalia ni: ${items}. Tumia Restock Advisor kwenye Inventory kuona kiasi cha kununua.`
+      : `Products to check: ${items}. Use the Restock Advisor in Inventory to see how much to buy.`;
+  }
+  if (/credit|owe|deni|dai/.test(q)) {
+    return sw
+      ? `Deni ambalo halijalipwa ni ${money(context.outstandingCredit)} kutoka kwa wateja ${context.customersOwing}. Tuma vikumbusho kwa waliochelewa.`
+      : `Outstanding credit is ${money(context.outstandingCredit)} from ${context.customersOwing} customer(s). Send reminders to overdue customers.`;
+  }
+  if (/profit|faida|expense|matumizi/.test(q)) {
+    const profit = context.salesTotal - context.expensesTotal;
+    return sw
+      ? `Mwezi huu, mauzo ni ${money(context.salesTotal)} na matumizi ni ${money(context.expensesTotal)}. Tofauti ya mauzo na matumizi ni ${money(profit)}.`
+      : `This month, sales are ${money(context.salesTotal)} and expenses are ${money(context.expensesTotal)}. The sales-minus-expenses figure is ${money(profit)}.`;
+  }
+  if (/best|sell|uza|maarufu/.test(q) && context.bestSeller) {
+    return sw
+      ? `${context.bestSeller.name} ndiyo bidhaa yako inayouza zaidi kwa siku 30 zilizopita, ikiwa na mauzo ya ${money(context.bestSeller.revenue)}.`
+      : `${context.bestSeller.name} is your top seller over the last 30 days, with ${money(context.bestSeller.revenue)} in sales.`;
+  }
+  return fallbackInsight(context, lang);
+}
+
 async function loadSystemPrompt(supabase: any, lang: Lang, mode: "insight" | "chat") {
   const key = `${mode}_${lang}`;
   const { data } = await supabase.from("system_prompts").select("content").eq("key", key).maybeSingle();
@@ -93,7 +154,7 @@ async function loadSystemPrompt(supabase: any, lang: Lang, mode: "insight" | "ch
 
 async function callGateway(messages: any[]) {
   const key = process.env.LOVABLE_API_KEY;
-  if (!key) throw new Error("Missing LOVABLE_API_KEY");
+  if (!key) return null;
   const res = await fetch(GATEWAY_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
@@ -117,7 +178,7 @@ export const getDashboardInsight = createServerFn({ method: "POST" })
     const content = await callGateway([
       { role: "system", content: sys },
       { role: "user", content: `Vendor data summary:\n${summary}\n\nGive one short insight or recommendation for today.` },
-    ]);
+    ]) ?? fallbackInsight(ctx, data.language);
     await supabase.from("ai_interactions").insert({ user_id: userId, kind: "insight", query: "dashboard_insight", response: content, language: data.language });
     return { insight: content };
   });
@@ -138,7 +199,7 @@ export const aiChat = createServerFn({ method: "POST" })
     const content = await callGateway([
       { role: "system", content: sys },
       { role: "user", content: `Vendor data summary:\n${summary}\n\nVendor question: ${data.question}` },
-    ]);
+    ]) ?? fallbackAnswer(ctx, data.question, data.language);
     await supabase.from("ai_interactions").insert({ user_id: userId, kind: "chat", query: data.question, response: content, language: data.language });
     return { answer: content };
   });
