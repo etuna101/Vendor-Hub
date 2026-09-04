@@ -6,14 +6,30 @@ type Ctx = {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (p: { email: string; phone: string; password: string; fullName: string; businessName: string; preferredLanguage: "en" | "sw" }) => Promise<{ error?: string; requiresEmailVerification?: boolean }>;
-  signIn: (p: { email: string; password: string }) => Promise<{ error?: string }>;
+  signUp: (p: {
+    email: string;
+    phone: string;
+    password: string;
+    fullName: string;
+    businessName: string;
+    preferredLanguage: "en" | "sw";
+  }) => Promise<{ error?: string; requiresEmailVerification?: boolean }>;
+  signIn: (p: {
+    email: string;
+    password: string;
+  }) => Promise<{ error?: string; requiresEmailVerification?: boolean }>;
+  resendVerification: (email: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 };
 
 const AuthCtx = createContext<Ctx>({
-  user: null, session: null, loading: true,
-  signUp: async () => ({}), signIn: async () => ({}), signOut: async () => {},
+  user: null,
+  session: null,
+  loading: true,
+  signUp: async () => ({}),
+  signIn: async () => ({}),
+  resendVerification: async () => ({}),
+  signOut: async () => {},
 });
 
 function signInErrorMessage(message: string) {
@@ -47,12 +63,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  const signUp: Ctx["signUp"] = async ({ email, phone, password, fullName, businessName, preferredLanguage }) => {
+  const signUp: Ctx["signUp"] = async ({
+    email,
+    phone,
+    password,
+    fullName,
+    businessName,
+    preferredLanguage,
+  }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { full_name: fullName, business_name: businessName, phone, preferred_language: preferredLanguage },
+        data: {
+          full_name: fullName,
+          business_name: businessName,
+          phone,
+          preferred_language: preferredLanguage,
+        },
         emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
       },
     });
@@ -71,15 +99,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       password,
     });
     if (error) {
-      return { error: signInErrorMessage(error.message) };
+      return {
+        error: signInErrorMessage(error.message),
+        requiresEmailVerification: /email not confirmed/i.test(error.message),
+      };
     }
     return {};
   };
 
-  const signOut = async () => { await supabase.auth.signOut(); };
+  const resendVerification: Ctx["resendVerification"] = async (email) => {
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email: email.trim(),
+      options: {
+        emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+      },
+    });
+    return error ? { error: signInErrorMessage(error.message) } : {};
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
-    <AuthCtx.Provider value={{ user: session?.user ?? null, session, loading, signUp, signIn, signOut }}>
+    <AuthCtx.Provider
+      value={{
+        user: session?.user ?? null,
+        session,
+        loading,
+        signUp,
+        signIn,
+        resendVerification,
+        signOut,
+      }}
+    >
       {children}
     </AuthCtx.Provider>
   );
