@@ -48,7 +48,60 @@ SUPABASE_PUBLISHABLE_KEY=<your anon / publishable key>
 Only ever use the **anon / publishable** key in the app. Never put the service role
 key or database password in `.env`, client code, or chat.
 
-## 4. Make yourself admin
+## 4. Deploy M-Pesa and SMS integrations
+
+The Edge Functions receive these Supabase values automatically, so do not create
+duplicate secrets for them:
+
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEYS` (or legacy `SUPABASE_ANON_KEY`)
+- `SUPABASE_SECRET_KEYS` (or legacy `SUPABASE_SERVICE_ROLE_KEY`)
+
+The frontend must only use `VITE_SUPABASE_URL` and
+`VITE_SUPABASE_PUBLISHABLE_KEY`. Daraja and Africa's Talking values belong only
+in Supabase Edge Function secrets.
+
+From the repository root, link the CLI to your project:
+
+```bash
+supabase login
+supabase link --project-ref <your-project-ref>
+```
+
+Deploy the callback before configuring `DARAJA_CALLBACK_URL`. It is public to
+Daraja but protected by `DARAJA_CALLBACK_TOKEN`:
+
+```bash
+supabase functions deploy mpesa-callback --no-verify-jwt
+```
+
+Set the provider secrets with placeholders replaced by values from the provider
+dashboards. Do not commit this command with real values in scripts or source:
+
+```bash
+supabase secrets set DARAJA_BASE_URL="https://sandbox.safaricom.co.ke" DARAJA_CONSUMER_KEY="<daraja-consumer-key>" DARAJA_CONSUMER_SECRET="<daraja-consumer-secret>" DARAJA_SHORTCODE="<sandbox-shortcode>" DARAJA_PASSKEY="<sandbox-passkey>" DARAJA_CALLBACK_URL="https://<your-project-ref>.supabase.co/functions/v1/mpesa-callback?token=<callback-token>" DARAJA_CALLBACK_TOKEN="<callback-token>" AT_USERNAME="<africas-talking-username>" AT_API_KEY="<africas-talking-api-key>" AT_SENDER_ID="<approved-sender-id>" AT_BASE_URL="https://api.africastalking.com"
+```
+
+Deploy the functions that use those secrets:
+
+```bash
+supabase functions deploy mpesa-stk
+supabase functions deploy send-sms
+supabase functions deploy debt-reminders --no-verify-jwt
+```
+
+For local Edge Function development, use a local-only file such as
+`supabase/functions/.env` or pass `--env-file`. Keep it ignored by Git:
+
+```bash
+supabase functions serve --env-file supabase/functions/.env
+```
+
+Use the Sandbox URL above during development. For production, replace it with
+`https://api.safaricom.co.ke` and use production credentials, shortcode, and
+passkey.
+
+## 5. Make yourself admin
 
 After signing up once in the app, run in the SQL Editor:
 
