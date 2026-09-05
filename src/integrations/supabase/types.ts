@@ -47,26 +47,56 @@ export type Database = {
       credit_payments: {
         Row: {
           amount: number
+          checkout_request_id: string | null
+          created_at: string
           date: string
           id: string
+          merchant_request_id: string | null
+          mpesa_receipt_number: string | null
           note: string | null
+          phone_number: string | null
+          result_code: number | null
+          result_description: string | null
           sale_id: string
+          status: string
+          transaction_date: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
           amount: number
+          checkout_request_id?: string | null
+          created_at?: string
           date?: string
           id?: string
+          merchant_request_id?: string | null
+          mpesa_receipt_number?: string | null
           note?: string | null
+          phone_number?: string | null
+          result_code?: number | null
+          result_description?: string | null
           sale_id: string
+          status?: string
+          transaction_date?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
           amount?: number
+          checkout_request_id?: string | null
+          created_at?: string
           date?: string
           id?: string
+          merchant_request_id?: string | null
+          mpesa_receipt_number?: string | null
           note?: string | null
+          phone_number?: string | null
+          result_code?: number | null
+          result_description?: string | null
           sale_id?: string
+          status?: string
+          transaction_date?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -85,6 +115,7 @@ export type Database = {
           id: string
           name: string
           phone: string | null
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -92,6 +123,7 @@ export type Database = {
           id?: string
           name: string
           phone?: string | null
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -99,6 +131,7 @@ export type Database = {
           id?: string
           name?: string
           phone?: string | null
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -129,6 +162,82 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      notifications: {
+        Row: {
+          channel: string
+          created_at: string
+          credit_payment_id: string | null
+          customer_id: string | null
+          failure_reason: string | null
+          id: string
+          message: string
+          provider_message_id: string | null
+          reminder_date: string | null
+          sale_id: string | null
+          sent_at: string | null
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          credit_payment_id?: string | null
+          customer_id?: string | null
+          failure_reason?: string | null
+          id?: string
+          message: string
+          provider_message_id?: string | null
+          reminder_date?: string | null
+          sale_id?: string | null
+          sent_at?: string | null
+          status?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          credit_payment_id?: string | null
+          customer_id?: string | null
+          failure_reason?: string | null
+          id?: string
+          message?: string
+          provider_message_id?: string | null
+          reminder_date?: string | null
+          sale_id?: string | null
+          sent_at?: string | null
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_credit_payment_id_fkey"
+            columns: ["credit_payment_id"]
+            isOneToOne: false
+            referencedRelation: "credit_payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notifications_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       products: {
         Row: {
@@ -378,12 +487,91 @@ export type Database = {
           user_id: string
         }[]
       }
+      create_pending_mpesa_payment: {
+        Args: { _amount: number; _phone_number: string; _sale_id: string }
+        Returns: {
+          amount: number
+          checkout_request_id: string | null
+          created_at: string
+          date: string
+          id: string
+          merchant_request_id: string | null
+          mpesa_receipt_number: string | null
+          note: string | null
+          phone_number: string | null
+          result_code: number | null
+          result_description: string | null
+          sale_id: string
+          status: string
+          transaction_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "credit_payments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      normalize_kenyan_phone: { Args: { _phone: string }; Returns: string }
+      process_failed_mpesa_payment: {
+        Args: {
+          _checkout_request_id: string
+          _merchant_request_id: string
+          _result_code: number
+          _result_description: string
+        }
+        Returns: {
+          amount: number
+          checkout_request_id: string | null
+          created_at: string
+          date: string
+          id: string
+          merchant_request_id: string | null
+          mpesa_receipt_number: string | null
+          note: string | null
+          phone_number: string | null
+          result_code: number | null
+          result_description: string | null
+          sale_id: string
+          status: string
+          transaction_date: string | null
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "credit_payments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      process_successful_mpesa_payment: {
+        Args: {
+          _amount: number
+          _checkout_request_id: string
+          _merchant_request_id: string
+          _mpesa_receipt_number: string
+          _phone_number: string
+          _result_code?: number
+          _result_description?: string
+          _transaction_date: string
+        }
+        Returns: {
+          amount_paid: number
+          balance: number
+          debt_status: string
+          payment_id: string
+          sale_id: string
+        }[]
       }
       record_restock: {
         Args: { _note: string; _product_id: string; _quantity: number }
