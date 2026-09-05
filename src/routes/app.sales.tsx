@@ -86,6 +86,7 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
   const [productId, setProductId] = useState("");
   const [qty, setQty] = useState<number>(1);
   const [customerId, setCustomerId] = useState<string>("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [isCredit, setIsCredit] = useState(false);
   const [dueDate, setDueDate] = useState<string>("");
   const [saving, setSaving] = useState(false);
@@ -104,7 +105,7 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
     queryKey: ["customers"],
     enabled: online,
     queryFn: async () => {
-      const { data } = await supabase.from("customers").select("id, name").order("name");
+      const { data } = await supabase.from("customers").select("id, name, phone").order("name");
       return data ?? [];
     },
   });
@@ -118,6 +119,8 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
     e.preventDefault();
     if (!product) return toast.error("Pick a product");
     if (isCredit && !dueDate) return toast.error(lang === "en" ? "Pick a due date for this credit sale" : "Chagua tarehe ya kulipa deni");
+    if (isCredit && !customerId && !newCustomer.trim()) return toast.error(lang === "en" ? "Enter the debtor's name" : "Weka jina la mdaiwa");
+    if (isCredit && !customerPhone.trim()) return toast.error(lang === "en" ? "Enter the debtor's phone number" : "Weka nambari ya simu ya mdaiwa");
     setSaving(true);
     try {
       const res = await recordSaleOfflineFirst({
@@ -127,6 +130,7 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
         unit_price: unitPrice,
         customer_id: customerId || null,
         new_customer_name: newCustomer.trim() || undefined,
+        customer_phone: customerPhone.trim() || undefined,
         is_credit: isCredit,
         due_date: dueDate || null,
       });
@@ -183,14 +187,23 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
             <div className="flex flex-col gap-2">
               <label className="flex flex-col gap-1">
                 <span className="text-sm font-semibold">{t("customer")}</span>
-                <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-3">
+                <select value={customerId} onChange={(e) => {
+                  const id = e.target.value;
+                  const selected = customers.find((customer: any) => customer.id === id);
+                  setCustomerId(id);
+                  setCustomerPhone(selected?.phone ?? "");
+                }} className="tap-target rounded-xl border border-input bg-card px-3">
                   <option value="">{lang === "en" ? "— pick or add new below —" : "— chagua au ongeza mpya —"}</option>
-                  {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {customers.map((c) => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ""}</option>)}
                 </select>
               </label>
               {!customerId && (
                 <input placeholder={lang === "en" ? "New customer name" : "Jina la mteja mpya"} value={newCustomer} onChange={(e) => setNewCustomer(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-4" />
               )}
+              <label className="flex flex-col gap-1">
+                <span className="text-sm font-semibold">{lang === "en" ? "Debtor phone number" : "Nambari ya simu ya mdaiwa"}</span>
+                <input type="tel" required value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="07XX XXX XXX" className="tap-target rounded-xl border border-input bg-card px-4" />
+              </label>
               <label className="flex flex-col gap-1">
                 <span className="text-sm font-semibold">{lang === "en" ? "Due date" : "Tarehe ya kulipa"}</span>
                 <input type="date" required value={dueDate} onChange={(e) => setDueDate(e.target.value)} className="tap-target rounded-xl border border-input bg-card px-3" />

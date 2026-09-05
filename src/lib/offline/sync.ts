@@ -18,11 +18,18 @@ async function replay(item: QueueItem) {
     if (!customerId && p.new_customer_name) {
       const { data, error } = await supabase
         .from("customers")
-        .insert({ name: p.new_customer_name, user_id: p.user_id })
+        .insert({ name: p.new_customer_name, phone: p.customer_phone ?? null, user_id: p.user_id })
         .select("id")
         .single();
       if (error) throw error;
       customerId = data.id;
+    }
+    if (p.is_credit && customerId && p.customer_phone) {
+      const { error } = await supabase
+        .from("customers")
+        .update({ phone: p.customer_phone })
+        .eq("id", customerId);
+      if (error) throw error;
     }
     const { data: saleId, error } = await supabase.rpc("record_sale" as any, {
       _product_id: p.product_id,

@@ -47,6 +47,7 @@ export async function recordSaleOfflineFirst(input: {
   unit_price: number;
   customer_id: string | null;
   new_customer_name?: string;
+  customer_phone?: string;
   is_credit: boolean;
   due_date?: string | null;
 }) {
@@ -58,11 +59,18 @@ export async function recordSaleOfflineFirst(input: {
     if (input.is_credit && !customerId && input.new_customer_name?.trim()) {
       const { data, error } = await supabase
         .from("customers")
-        .insert({ name: input.new_customer_name.trim(), user_id: userId })
+        .insert({ name: input.new_customer_name.trim(), phone: input.customer_phone?.trim() || null, user_id: userId })
         .select("id")
         .single();
       if (error) throw new Error(error.message);
       customerId = data.id;
+    }
+    if (input.is_credit && customerId && input.customer_phone?.trim()) {
+      const { error } = await supabase
+        .from("customers")
+        .update({ phone: input.customer_phone.trim() })
+        .eq("id", customerId);
+      if (error) throw new Error(error.message);
     }
     const { data: saleId, error } = await supabase.rpc("record_sale" as any, {
       _product_id: input.product_id,
@@ -91,6 +99,7 @@ export async function recordSaleOfflineFirst(input: {
       total: input.quantity * input.unit_price,
       customer_id: input.customer_id,
       customer_name: input.new_customer_name ?? null,
+      customer_phone: input.customer_phone ?? null,
       is_credit: input.is_credit,
       credit_paid: false,
       date: new Date().toISOString(),
