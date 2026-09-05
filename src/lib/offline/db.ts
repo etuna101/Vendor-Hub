@@ -39,6 +39,7 @@ export interface LocalSale {
   total: number;
   customer_id: string | null;
   customer_name?: string | null;
+  customer_phone?: string | null;
   is_credit: boolean;
   credit_paid: boolean;
   date: string;
