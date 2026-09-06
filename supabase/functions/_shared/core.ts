@@ -18,10 +18,24 @@ export class HttpError extends Error {
     super(message);
   }
 }
+// Accept both the documented DARAJA_*/AT_* names and the shorter aliases some
+// deployments already use, so existing secret names keep working.
+const ALIASES: Record<string, string[]> = {
+  DARAJA_CONSUMER_KEY: ["CONSUMER_KEY"],
+  DARAJA_CONSUMER_SECRET: ["CONSUMER_SECRET"],
+  DARAJA_SHORTCODE: ["SHORTCODE"],
+  DARAJA_PASSKEY: ["PASSKEY"],
+  DARAJA_BASE_URL: ["MPESA_BASE_URL"],
+  AT_USERNAME: ["AFRICASTALKING_USERNAME"],
+  AT_API_KEY: ["AFRICASTALKING_API_KEY"],
+};
 export function env(name: string) {
-  const value = Deno.env.get(name);
-  if (!value) throw new Error(`Missing Edge Function secret: ${name}`);
-  return value;
+  for (const key of [name, ...(ALIASES[name] ?? [])]) {
+    const value = Deno.env.get(key);
+    if (value) return value;
+  }
+  if (name === "DARAJA_BASE_URL") return "https://sandbox.safaricom.co.ke";
+  throw new Error(`Missing Edge Function secret: ${name}`);
 }
 function platformKey(modern: string, legacy: string) {
   return Deno.env.get(legacy) ?? JSON.parse(env(modern)).default;
