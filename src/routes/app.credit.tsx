@@ -492,7 +492,7 @@ function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void 
           </div>
           <span className="text-xl font-extrabold text-primary">{formatKsh(row.balance)}</span>
         </div>
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           {channels.map((c) => (
             <button
               key={c.key}
@@ -507,6 +507,13 @@ function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void 
             </button>
           ))}
         </div>
+        {channel === "auto" && (
+          <p className="rounded-xl bg-secondary p-3 text-xs font-semibold text-muted-foreground">
+            {lang === "en"
+              ? "VendorHub sends this SMS for you and records it below. Only one automatic reminder per debt per day."
+              : "VendorHub itatuma SMS hii na kuirekodi hapa chini. Kikumbusho kimoja tu kwa deni kila siku."}
+          </p>
+        )}
         <label className="flex flex-col gap-1">
           <span className="text-sm font-semibold">{lang === "en" ? "Message" : "Ujumbe"}</span>
           <textarea
@@ -523,21 +530,50 @@ function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void 
               : "Hakuna namba ya simu ya mteja huyu."}
           </p>
         )}
+        {history.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-semibold">
+              {lang === "en" ? "Reminder history" : "Historia ya vikumbusho"}
+            </span>
+            {history.map((h) => (
+              <div
+                key={h.id}
+                className="flex items-center justify-between rounded-xl bg-secondary px-3 py-2 text-xs"
+              >
+                <span className="font-semibold">
+                  {new Date(h.created_at).toLocaleString(lang === "sw" ? "sw-KE" : "en-KE")}
+                </span>
+                <span
+                  className={`font-bold ${h.status === "SENT" ? "text-primary" : h.status === "FAILED" ? "text-danger" : "text-muted-foreground"}`}
+                >
+                  {h.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="mt-1 flex gap-2">
           <button
             onClick={onClose}
             className="tap-target flex-1 rounded-2xl border border-border font-semibold"
           >
-            {lang === "en" ? "Cancel" : "Ghairi"}
+            {lang === "en" ? "Close" : "Funga"}
           </button>
           <button
             onClick={send}
-            disabled={!phone && channel !== "email"}
+            disabled={sending || (!phone && channel !== "email")}
             className="tap-target flex-1 rounded-2xl bg-primary font-bold text-primary-foreground disabled:opacity-60"
           >
-            {lang === "en" ? "Send" : "Tuma"}
+            {sending
+              ? lang === "en"
+                ? "Sending..."
+                : "Inatuma..."
+              : lang === "en"
+                ? "Send"
+                : "Tuma"}
           </button>
         </div>
+
       </div>
     </Modal>
   );
