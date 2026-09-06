@@ -362,7 +362,8 @@ function Metric({ icon, value, label }: { icon: React.ReactNode; value: number; 
 
 function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void }) {
   const { lang } = useI18n();
-  const [channel, setChannel] = useState<"sms" | "whatsapp" | "email">("sms");
+  const [channel, setChannel] = useState<"auto" | "sms" | "whatsapp" | "email">("auto");
+  const [sending, setSending] = useState(false);
   const phone = row.customers?.phone ?? "";
   const name = row.customers?.name ?? (lang === "en" ? "Customer" : "Mteja");
   const due = row.due_date
@@ -371,6 +372,22 @@ function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void 
       ? "as agreed"
       : "kama tulivyoagana";
 
+  const { data: history = [], refetch: refetchHistory } = useQuery<
+    Array<{ id: string; type: string; status: string; created_at: string; failure_reason: string | null }>
+  >({
+    queryKey: ["reminder-history", row.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("id, type, status, created_at, failure_reason")
+        .eq("sale_id", row.id)
+        .order("created_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return (data ?? []) as any;
+    },
+  });
+
   const defaultMessage =
     lang === "en"
       ? `Hello ${name}, this is a friendly reminder from your VendorHub vendor. Your balance is ${formatKsh(row.balance)} for ${row.product_name_snapshot}, due ${due}. Kindly pay via M-Pesa or at the stall. Asante!`
@@ -378,7 +395,70 @@ function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void 
 
   const [message, setMessage] = useState(defaultMessage);
 
+  const sendAutoSms = async () => {
+    setSending(true);
+    try {
+      const { data: session } = await supabase.auth.getUser();
+      const userId = session.user?.id;
+      if (!userId) throw new Error(lang === "en" ? "Please sign in again." : "Tafadhali ingia tena.");
+      const today = new Date().toISOString().slice(0, 10);
+      const type =
+        row.daysDiff === null
+          ? "DEBT_DUE_SOON"
+          : row.daysDiff < 0
+            ? "DEBT_OVERDUE"
+            : row.daysDiff === 0
+              ? "DEBT_DUE_TODAY"
+              : "DEBT_DUE_SOON";
+      const { data: created, error } = await supabase
+        .from("notifications")
+        .insert({
+          user_id: userId,
+          customer_id: row.customer_id,
+          sale_id: row.id,
+          type,
+          message,
+          reminder_date: today,
+        } as any)
+        .select("id")
+        .maybeSingle();
+      if (error) {
+        if (error.code === "23505") {
+          toast.info(
+            lang === "en"
+              ? "A reminder for this debt was already sent today."
+              : "Kikumbusho cha deni hili kilitumwa leo.",
+          );
+          return;
+        }
+        throw error;
+      }
+      const { data: result, error: fnError } = await supabase.functions.invoke("send-sms", {
+        body: { notification_id: (created as any)?.id },
+      });
+      if (fnError || !(result as any)?.ok) {
+        toast.error(
+          (result as any)?.error ??
+            (lang === "en"
+              ? "SMS could not be delivered. It is saved in the reminder history."
+              : "SMS haikutumwa. Imehifadhiwa kwenye historia."),
+        );
+      } else {
+        toast.success(lang === "en" ? "Reminder SMS sent" : "SMS ya kikumbusho imetumwa");
+      }
+      await refetchHistory();
+    } catch (err: any) {
+      toast.error(err?.message ?? (lang === "en" ? "Failed to send" : "Imeshindikana"));
+    } finally {
+      setSending(false);
+    }
+  };
+
   const send = () => {
+    if (channel === "auto") {
+      void sendAutoSms();
+      return;
+    }
     const text = encodeURIComponent(message);
     if (channel === "email") {
       window.location.href = `mailto:?subject=${encodeURIComponent(lang === "en" ? "Payment reminder" : "Kikumbusho cha malipo")}&body=${text}`;
@@ -392,6 +472,11 @@ function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void 
   };
 
   const channels = [
+    {
+      key: "auto" as const,
+      label: lang === "en" ? "Auto SMS" : "SMS Otomatiki",
+      icon: <BellRing size={16} />,
+    },
     { key: "sms" as const, label: "SMS", icon: <Smartphone size={16} /> },
     { key: "whatsapp" as const, label: "WhatsApp", icon: <MessageSquare size={16} /> },
     { key: "email" as const, label: "Email", icon: <Mail size={16} /> },
