@@ -29,10 +29,23 @@ export async function deliverNotification(notification: {
         body,
       },
     );
-    const payload = await response.json().catch(() => ({}));
+    const raw = await response.text();
+    const payload = (() => {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return {} as Record<string, unknown>;
+      }
+    })();
     const recipient = payload?.SMSMessageData?.Recipients?.[0];
-    if (!response.ok || !recipient || Number(recipient.statusCode) >= 400)
-      throw new Error("SMS provider rejected request");
+    if (!response.ok || !recipient || Number(recipient.statusCode) >= 400) {
+      const detail =
+        recipient?.status ??
+        payload?.SMSMessageData?.Message ??
+        raw.slice(0, 200) ??
+        `HTTP ${response.status}`;
+      throw new Error(`SMS provider rejected request: ${detail}`);
+    }
     await admin
       .from("notifications")
       .update({
