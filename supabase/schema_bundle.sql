@@ -1124,3 +1124,28 @@ REVOKE ALL ON FUNCTION public.create_pending_mpesa_payment(uuid, numeric, text) 
 REVOKE ALL ON FUNCTION public.process_failed_mpesa_payment(text, text, integer, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.create_pending_mpesa_payment(uuid, numeric, text) TO service_role;
 GRANT EXECUTE ON FUNCTION public.process_failed_mpesa_payment(text, text, integer, text) TO service_role;
+
+-- ============================================================
+-- 8. Daily debt-reminder scheduler (pg_cron + pg_net)
+-- ------------------------------------------------------------
+-- Run AFTER deploying the `debt-reminders` Edge Function and after setting
+-- the CRON_SECRET function secret. Replace <your-ref> and <your CRON_SECRET>.
+-- Runs 04:00 UTC = 07:00 Nairobi, every day.
+-- ============================================================
+CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA extensions;
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+
+SELECT cron.unschedule('vendorhub-daily-debt-reminders')
+WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'vendorhub-daily-debt-reminders');
+
+SELECT cron.schedule(
+  'vendorhub-daily-debt-reminders',
+  '0 4 * * *',
+  $cron$
+  SELECT net.http_post(
+    url := 'https://<your-ref>.supabase.co/functions/v1/debt-reminders',
+    headers := '{"Content-Type":"application/json","x-cron-secret":"<your CRON_SECRET>"}'::jsonb,
+    body := '{}'::jsonb
+  );
+  $cron$
+);
