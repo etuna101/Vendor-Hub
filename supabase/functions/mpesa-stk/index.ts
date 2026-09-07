@@ -13,7 +13,7 @@ Deno.serve(async (request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const user = await authenticatedUser(request);
-    const { sale_id, amount } = await request.json();
+    const { sale_id, amount, phone_number } = await request.json();
     const value = Number(amount);
     if (!sale_id || !Number.isInteger(value) || value <= 0)
       throw new HttpError(422, "Enter a whole-KES amount greater than zero.");
@@ -23,15 +23,12 @@ Deno.serve(async (request) => {
       .select("id,user_id,customer_id,is_credit,credit_paid,customers(phone)")
       .eq("id", sale_id)
       .maybeSingle();
-    if (
-      !sale ||
-      sale.user_id !== user.id ||
-      !sale.is_credit ||
-      sale.credit_paid ||
-      !sale.customer_id
-    )
-      throw new HttpError(404, "Outstanding debt not found.");
-    const phone = normalizeKenyanPhone((sale.customers as { phone?: string | null } | null)?.phone);
+    if (!sale || sale.user_id !== user.id) throw new HttpError(404, "Sale not found.");
+    if (sale.is_credit && sale.credit_paid) throw new HttpError(404, "This debt is already paid.");
+    const phone = normalizeKenyanPhone(
+      phone_number ?? (sale.customers as { phone?: string | null } | null)?.phone,
+    );
+
     const { data: payment, error } = await admin.rpc("create_pending_mpesa_payment", {
       _sale_id: sale.id,
       _amount: value,
