@@ -83,7 +83,7 @@ export async function recordSaleOfflineFirst(input: {
     if (input.is_credit && input.due_date && saleId) {
       await supabase.from("sales").update({ due_date: input.due_date } as any).eq("id", saleId as any);
     }
-    return { queued: false };
+    return { queued: false, sale_id: (saleId as string | null) ?? null, total: input.quantity * input.unit_price };
   }
 
   // Offline: write locally + queue, and reflect it in the UI right away.
@@ -115,7 +115,7 @@ export async function recordSaleOfflineFirst(input: {
     }
   }
   await enqueue("sale", { ...input, user_id: userId, local_row_id: localRowId });
-  return { queued: true };
+  return { queued: true, sale_id: null, total: input.quantity * input.unit_price };
 }
 
 export async function recordExpenseOfflineFirst(input: {
