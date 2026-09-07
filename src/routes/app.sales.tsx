@@ -10,6 +10,7 @@ import { formatKsh, formatQty } from "@/lib/format";
 import { toast } from "sonner";
 import { Plus, ShoppingCart, CloudOff } from "lucide-react";
 import { Modal } from "./app.inventory";
+import { AskPaymentDialog } from "@/components/AskPaymentDialog";
 
 
 export const Route = createFileRoute("/app/sales")({ component: SalesScreen });
@@ -18,6 +19,7 @@ function SalesScreen() {
   const { t, lang } = useI18n();
   const [period, setPeriod] = useState<PeriodKey>("today");
   const [open, setOpen] = useState(false);
+  const [askPay, setAskPay] = useState<{ saleId: string; amount: number; phone?: string | null } | null>(null);
   const { from, to } = getPeriodRange(period);
   const qc = useQueryClient();
 
@@ -76,12 +78,36 @@ function SalesScreen() {
           ))}
         </div>
       )}
-      {open && <NewSaleDialog onClose={() => setOpen(false)} onSaved={() => { qc.invalidateQueries(); setOpen(false); }} />}
+      {open && (
+        <NewSaleDialog
+          onClose={() => setOpen(false)}
+          onSaved={(payment) => {
+            qc.invalidateQueries();
+            setOpen(false);
+            if (payment) setAskPay(payment);
+          }}
+        />
+      )}
+      {askPay && (
+        <AskPaymentDialog
+          saleId={askPay.saleId}
+          defaultAmount={askPay.amount}
+          defaultPhone={askPay.phone ?? ""}
+          onClose={() => setAskPay(null)}
+          onPaid={() => qc.invalidateQueries()}
+        />
+      )}
     </div>
   );
 }
 
-function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+function NewSaleDialog({
+  onClose,
+  onSaved,
+}: {
+  onClose: () => void;
+  onSaved: (payment?: { saleId: string; amount: number; phone?: string | null }) => void;
+}) {
   const { t, lang } = useI18n();
   const [productId, setProductId] = useState("");
   const [qty, setQty] = useState<number>(1);
@@ -140,7 +166,11 @@ function NewSaleDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () 
           ? lang === "en" ? "Saved offline — will sync" : "Imehifadhiwa — itasawazishwa"
           : lang === "en" ? "Sale recorded" : "Muuzo umehifadhiwa",
       );
-      onSaved();
+      onSaved(
+        !res.queued && res.sale_id
+          ? { saleId: res.sale_id, amount: total, phone: customerPhone.trim() || null }
+          : undefined,
+      );
     } catch (err: any) {
       toast.error(err?.message ?? "Failed");
     } finally {
