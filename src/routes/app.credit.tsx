@@ -437,11 +437,12 @@ function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void 
         body: { notification_id: (created as any)?.id },
       });
       if (fnError || !(result as any)?.ok) {
-        toast.error(
-          (result as any)?.error ??
-            (lang === "en"
-              ? "SMS could not be delivered. It is saved in the reminder history."
-              : "SMS haikutumwa. Imehifadhiwa kwenye historia."),
+        // Research-stage flow: SMS delivery is not connected to a live provider yet.
+        // The reminder is still recorded in history, so present it as queued, not an error.
+        toast.info(
+          lang === "en"
+            ? "Reminder recorded. SMS delivery is not connected yet (research stage) — it is saved in the reminder history."
+            : "Kikumbusho kimehifadhiwa. Utumaji wa SMS bado haujaunganishwa (hatua ya utafiti) — kimehifadhiwa kwenye historia.",
         );
       } else {
         toast.success(lang === "en" ? "Reminder SMS sent" : "SMS ya kikumbusho imetumwa");
@@ -510,8 +511,8 @@ function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void 
         {channel === "auto" && (
           <p className="rounded-xl bg-secondary p-3 text-xs font-semibold text-muted-foreground">
             {lang === "en"
-              ? "VendorHub sends this SMS for you and records it below. Only one automatic reminder per debt per day."
-              : "VendorHub itatuma SMS hii na kuirekodi hapa chini. Kikumbusho kimoja tu kwa deni kila siku."}
+              ? "VendorHub records this reminder below (one per debt per day). Note: live SMS delivery is not connected yet — research-stage flow."
+              : "VendorHub itarekodi kikumbusho hiki hapa chini (kimoja kwa deni kila siku). Kumbuka: utumaji wa SMS bado haujaunganishwa — hatua ya utafiti."}
           </p>
         )}
         <label className="flex flex-col gap-1">
