@@ -511,8 +511,8 @@ function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void 
         {channel === "auto" && (
           <p className="rounded-xl bg-secondary p-3 text-xs font-semibold text-muted-foreground">
             {lang === "en"
-              ? "VendorHub sends this SMS for you and records it below. Only one automatic reminder per debt per day."
-              : "VendorHub itatuma SMS hii na kuirekodi hapa chini. Kikumbusho kimoja tu kwa deni kila siku."}
+              ? "VendorHub records this reminder below (one per debt per day). Note: live SMS delivery is not connected yet — research-stage flow."
+              : "VendorHub itarekodi kikumbusho hiki hapa chini (kimoja kwa deni kila siku). Kumbuka: utumaji wa SMS bado haujaunganishwa — hatua ya utafiti."}
           </p>
         )}
         <label className="flex flex-col gap-1">
