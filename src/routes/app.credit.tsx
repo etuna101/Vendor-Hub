@@ -437,11 +437,12 @@ function ReminderDialog({ row, onClose }: { row: CreditRow; onClose: () => void 
         body: { notification_id: (created as any)?.id },
       });
       if (fnError || !(result as any)?.ok) {
-        toast.error(
-          (result as any)?.error ??
-            (lang === "en"
-              ? "SMS could not be delivered. It is saved in the reminder history."
-              : "SMS haikutumwa. Imehifadhiwa kwenye historia."),
+        // Research-stage flow: SMS delivery is not connected to a live provider yet.
+        // The reminder is still recorded in history, so present it as queued, not an error.
+        toast.info(
+          lang === "en"
+            ? "Reminder recorded. SMS delivery is not connected yet (research stage) — it is saved in the reminder history."
+            : "Kikumbusho kimehifadhiwa. Utumaji wa SMS bado haujaunganishwa (hatua ya utafiti) — kimehifadhiwa kwenye historia.",
         );
       } else {
         toast.success(lang === "en" ? "Reminder SMS sent" : "SMS ya kikumbusho imetumwa");
