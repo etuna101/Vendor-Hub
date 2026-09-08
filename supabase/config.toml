@@ -1,15 +1,18 @@
-project_id = "ibivokyralgxxqkfdcpm"
+project_id = "xqjcvilgexoqkdhfpvfh"
 
+# The handler authenticates the caller itself with authenticatedUser(); platform
+# JWT verification is off so the browser CORS preflight is not rejected.
 [functions.mpesa-stk]
-verify_jwt = true
+verify_jwt = false
 
 # Daraja cannot attach a Supabase JWT to its callback. The handler validates the
 # DARAJA_CALLBACK_TOKEN query parameter instead.
 [functions.mpesa-callback]
 verify_jwt = false
 
+# The handler authenticates the caller itself with authenticatedUser().
 [functions.send-sms]
-verify_jwt = true
+verify_jwt = false
 
 # Invoke this only from a trusted scheduler with the CRON_SECRET header.
 [functions.debt-reminders]
