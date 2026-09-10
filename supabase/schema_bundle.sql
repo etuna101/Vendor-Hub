@@ -980,8 +980,8 @@ DECLARE
 BEGIN
   IF _amount <= 0 THEN RAISE EXCEPTION 'amount must be positive'; END IF;
   SELECT * INTO _sale FROM public.sales WHERE id = _sale_id FOR UPDATE;
-  IF NOT FOUND OR NOT _sale.is_credit THEN RAISE EXCEPTION 'credit sale not found'; END IF;
-  IF _sale.credit_paid THEN RAISE EXCEPTION 'debt is already paid'; END IF;
+  IF NOT FOUND THEN RAISE EXCEPTION 'sale not found'; END IF;
+  IF _sale.is_credit AND _sale.credit_paid THEN RAISE EXCEPTION 'debt is already paid'; END IF;
   SELECT COALESCE(sum(amount), 0) INTO _paid
   FROM public.credit_payments WHERE sale_id = _sale.id AND status = 'SUCCESS';
   SELECT count(*) INTO _pending_count
