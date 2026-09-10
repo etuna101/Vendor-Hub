@@ -1073,10 +1073,7 @@ BEGIN
   END IF;
   SELECT * INTO _sale FROM public.sales WHERE id = _payment.sale_id FOR UPDATE;
   IF NOT FOUND THEN
-    RAISE EXCEPTION 'credit sale not found for payment';
-  END IF;
-  IF NOT _sale.is_credit THEN
-    RAISE EXCEPTION 'payment is not attached to a credit sale';
+    RAISE EXCEPTION 'sale not found for payment';
   END IF;
   IF _payment.status = 'SUCCESS' THEN
     SELECT COALESCE(sum(amount), 0) INTO _paid
