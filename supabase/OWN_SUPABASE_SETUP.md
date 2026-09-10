@@ -110,3 +110,31 @@ insert into public.user_roles (user_id, role)
 select id, 'admin' from auth.users where email = 'you@example.com'
 on conflict (user_id, role) do nothing;
 ```
+
+## 6. SMS reminders + M-Pesa STK push (run this if your project predates them)
+
+`supabase/schema_bundle.sql` already contains everything. If your project was
+created from an older copy of the bundle, run only the update file instead:
+
+**SQL Editor → New query → paste `supabase/sql_payments_sms_update.sql` → Run.**
+
+It is idempotent and adds:
+
+- `normalize_kenyan_phone()` + a trigger that stores customer numbers as `2547XXXXXXXX`
+- payment columns on `credit_payments` (`status`, `phone_number`,
+  `merchant_request_id`, `checkout_request_id`, `mpesa_receipt_number`,
+  `transaction_date`, `result_code`, `result_description`, `updated_at`) with
+  unique indexes on the checkout id and M-Pesa receipt
+- the `notifications` table (+ GRANTs, RLS, indexes) with duplicate protection:
+  one debt reminder per debt per day, one result message per payment
+- RPCs `create_pending_mpesa_payment`, `process_successful_mpesa_payment`,
+  `process_failed_mpesa_payment` (service_role only)
+- the daily `vendorhub-daily-debt-reminders` pg_cron job — replace `<your-ref>`
+  and `<your CRON_SECRET>` in the last block before running
+
+Then set the function secrets and deploy (section 4 above):
+`DARAJA_BASE_URL`, `DARAJA_CONSUMER_KEY`, `DARAJA_CONSUMER_SECRET`,
+`DARAJA_SHORTCODE`, `DARAJA_PASSKEY`, `DARAJA_CALLBACK_URL`,
+`DARAJA_CALLBACK_TOKEN`, `AT_USERNAME`, `AT_API_KEY`, optional `AT_SENDER_ID`,
+and `CRON_SECRET`, then deploy `mpesa-stk`, `mpesa-callback`, `send-sms`,
+`debt-reminders`.
