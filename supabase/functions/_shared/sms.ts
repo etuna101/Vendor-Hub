@@ -18,7 +18,12 @@ export async function deliverNotification(notification: {
     const sender = Deno.env.get("AT_SENDER_ID");
     if (sender) body.set("from", sender);
     const response = await fetchWithTimeout(
-      `${Deno.env.get("AT_BASE_URL") ?? "https://api.africastalking.com"}/version1/messaging`,
+      `${
+        Deno.env.get("AT_BASE_URL") ??
+        (env("AT_USERNAME").trim().toLowerCase() === "sandbox"
+          ? "https://api.sandbox.africastalking.com"
+          : "https://api.africastalking.com")
+      }/version1/messaging`,
       {
         method: "POST",
         headers: {
