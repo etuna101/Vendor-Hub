@@ -50,8 +50,12 @@ function SignIn() {
     const uid = userData.user?.id;
     let isAdmin = false;
     if (uid) {
-      const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", uid);
-      isAdmin = (roles ?? []).some((r: any) => r.role === "admin");
+      const { data: roles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", uid);
+      if (rolesError) console.error("[Auth] Failed to load user role:", rolesError);
+      isAdmin = (roles ?? []).some((role) => role.role === "admin");
     }
     setLoading(false);
     nav({ to: isAdmin ? "/admin" : "/app/dashboard" });

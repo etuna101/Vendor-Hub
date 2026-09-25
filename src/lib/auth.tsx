@@ -55,11 +55,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
-    });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
       setLoading(false);
     });
+    supabase.auth
+      .getSession()
+      .then(({ data, error }) => {
+        if (error) console.error("[Auth] Failed to restore session:", error);
+        setSession(data.session);
+      })
+      .catch((error) => console.error("[Auth] Failed to restore session:", error))
+      .finally(() => setLoading(false));
     return () => sub.subscription.unsubscribe();
   }, []);
 
