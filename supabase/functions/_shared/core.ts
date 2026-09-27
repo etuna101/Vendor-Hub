@@ -6,6 +6,14 @@ export const corsHeaders = {
     "authorization, apikey, content-type, x-client-info, x-cron-secret, x-supabase-api-version, accept-profile, content-profile",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
+export function corsPreflightHeaders(request: Request) {
+  const requestedHeaders = request.headers.get("Access-Control-Request-Headers");
+  return {
+    ...corsHeaders,
+    ...(requestedHeaders ? { "Access-Control-Allow-Headers": requestedHeaders } : {}),
+    Vary: "Access-Control-Request-Headers",
+  };
+}
 export const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
     status,

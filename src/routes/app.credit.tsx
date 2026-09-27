@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { recordCreditPaymentOfflineFirst } from "@/lib/offline/actions";
+import { getEdgeFunctionErrorMessage } from "@/lib/edge-function-error";
 
 import { useI18n } from "@/lib/i18n";
 import { formatKsh } from "@/lib/format";
@@ -740,14 +741,20 @@ function MpesaPaymentDialog({
     }
     setState("sending");
     setMessage("");
-    const { data, error } = await supabase.functions.invoke("mpesa-stk", {
-      body: { sale_id: row.id, amount },
+    const { data, error } = await supabase.functions.invoke("daraja-stk-push", {
+      body: {
+        phoneNumber: row.customers?.phone,
+        amount,
+        accountReference: `VH-${row.id.slice(0, 8)}`,
+        transactionDesc: "Debt payment",
+      },
     });
+    const functionErrorMessage = error ? await getEdgeFunctionErrorMessage(error) : null;
     if (error || !(data as any)?.payment_id) {
       setState("failed");
       setMessage(
         (data as any)?.error ??
-          error?.message ??
+          functionErrorMessage ??
           (lang === "en" ? "Could not start M-Pesa." : "M-Pesa haikuanza."),
       );
       return;

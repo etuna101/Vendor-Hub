@@ -1,7 +1,7 @@
 import {
   adminClient,
   authenticatedUser,
-  corsHeaders,
+  corsPreflightHeaders,
   env,
   fetchWithTimeout,
   HttpError,
@@ -10,7 +10,7 @@ import {
   safeError,
 } from "../_shared/core.ts";
 Deno.serve(async (request) => {
-  if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (request.method === "OPTIONS") return new Response("ok", { headers: corsPreflightHeaders(request) });
   try {
     const user = await authenticatedUser(request);
     const { sale_id, amount, phone_number } = await request.json();

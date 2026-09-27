@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { formatKsh } from "@/lib/format";
+import { getEdgeFunctionErrorMessage } from "@/lib/edge-function-error";
 import { Modal } from "@/routes/app.inventory";
 import { Smartphone } from "lucide-react";
 
@@ -109,14 +110,20 @@ export function AskPaymentDialog({
     }
     setState("sending");
     setMessage("");
-    const { data, error } = await supabase.functions.invoke("mpesa-stk", {
-      body: { sale_id: saleId, amount, phone_number: phone.replace(/\s|-/g, "") },
+    const { data, error } = await supabase.functions.invoke("daraja-stk-push", {
+      body: {
+        phoneNumber: phone.replace(/\s|-/g, ""),
+        amount,
+        accountReference: `VH-${saleId.slice(0, 8)}`,
+        transactionDesc: "Debt payment",
+      },
     });
+    const functionErrorMessage = error ? await getEdgeFunctionErrorMessage(error) : null;
     if (error || !(data as any)?.payment_id) {
       setState("failed");
       setMessage(
         (data as any)?.error ??
-          error?.message ??
+          functionErrorMessage ??
           (lang === "en" ? "Could not start M-Pesa." : "M-Pesa haikuanza."),
       );
       return;

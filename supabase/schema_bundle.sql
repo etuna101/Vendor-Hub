@@ -399,6 +399,8 @@ ALTER TABLE public.system_prompts ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "admins read system prompts" ON public.system_prompts FOR SELECT
   TO authenticated USING (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "authenticated read system prompts" ON public.system_prompts FOR SELECT
+  TO authenticated USING (true);
 CREATE POLICY "admins write system prompts" ON public.system_prompts FOR ALL
   TO authenticated USING (public.has_role(auth.uid(), 'admin'))
   WITH CHECK (public.has_role(auth.uid(), 'admin'));
@@ -687,6 +689,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='system_prompts' AND policyname='admins read system prompts') THEN
     CREATE POLICY "admins read system prompts" ON public.system_prompts FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname='public' AND tablename='system_prompts' AND policyname='authenticated read system prompts') THEN
+    CREATE POLICY "authenticated read system prompts" ON public.system_prompts FOR SELECT TO authenticated USING (true);
   END IF;
 END $$;
 
