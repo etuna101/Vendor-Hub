@@ -31,7 +31,7 @@ export function AskPaymentDialog({
   const [amount, setAmount] = useState<number>(Math.max(1, Math.round(defaultAmount)));
   const [phone, setPhone] = useState(defaultPhone ?? "");
   const [paymentId, setPaymentId] = useState<string | null>(null);
-  const [state, setState] = useState<"idle" | "sending" | "pending" | "success" | "failed">("idle");
+  const [state, setState] = useState<"idle" | "sending" | "pending" | "sent" | "success" | "failed">("idle");
   const [message, setMessage] = useState("");
   const ceiling = maxAmount ?? defaultAmount;
 
@@ -119,25 +119,36 @@ export function AskPaymentDialog({
       },
     });
     const functionErrorMessage = error ? await getEdgeFunctionErrorMessage(error) : null;
-    if (error || !(data as any)?.payment_id) {
+    const response = data as any;
+    if (error || response?.error) {
       setState("failed");
       setMessage(
-        (data as any)?.error ??
+        response?.error ??
           functionErrorMessage ??
           (lang === "en" ? "Could not start M-Pesa." : "M-Pesa haikuanza."),
       );
       return;
     }
-    setPaymentId((data as any).payment_id);
-    setState("pending");
+    const returnedPaymentId = response?.payment_id ?? response?.paymentId ?? response?.id;
+    const canTrackPayment = Boolean(returnedPaymentId);
+    if (canTrackPayment) {
+      setPaymentId(String(returnedPaymentId));
+      setState("pending");
+    } else {
+      setState("sent");
+    }
     setMessage(
       lang === "en"
-        ? "Tell the customer to check their phone and enter the M-Pesa PIN. The result shows here."
-        : "Mwambie mteja aangalie simu yake na aweke PIN ya M-Pesa. Jibu litaonekana hapa.",
+        ? canTrackPayment
+          ? "Tell the customer to check their phone and enter the M-Pesa PIN. The result shows here."
+          : "Prompt sent. Ask the customer to check their phone and enter the M-Pesa PIN."
+        : canTrackPayment
+          ? "Mwambie mteja aangalie simu yake na aweke PIN ya M-Pesa. Jibu litaonekana hapa."
+          : "Ombi limetumwa. Mwambie mteja aangalie simu yake na aweke PIN ya M-Pesa.",
     );
   };
 
-  const busy = state === "sending" || state === "pending";
+  const busy = state === "sending" || state === "pending" || state === "sent";
 
   return (
     <Modal onClose={onClose} title={lang === "en" ? "Ask customer to pay" : "Omba mteja alipe"}>
@@ -180,7 +191,7 @@ export function AskPaymentDialog({
             className={`rounded-xl p-3 text-sm font-semibold ${
               state === "failed"
                 ? "bg-danger/10 text-danger"
-                : state === "success"
+                : state === "success" || state === "sent"
                   ? "bg-primary/10 text-primary"
                   : "bg-secondary"
             }`}
@@ -194,7 +205,7 @@ export function AskPaymentDialog({
             onClick={onClose}
             className="tap-target flex-1 rounded-2xl border border-border font-semibold"
           >
-            {state === "success"
+            {state === "success" || state === "sent"
               ? lang === "en"
                 ? "Done"
                 : "Imekamilika"
@@ -212,7 +223,11 @@ export function AskPaymentDialog({
                 ? lang === "en"
                   ? "Sending…"
                   : "Inatuma…"
-                : state === "pending"
+                : state === "sent"
+                  ? lang === "en"
+                    ? "Prompt sent"
+                    : "Ombi limetumwa"
+                  : state === "pending"
                   ? lang === "en"
                     ? "Waiting…"
                     : "Inasubiri…"

@@ -674,7 +674,7 @@ function MpesaPaymentDialog({
   const { lang } = useI18n();
   const [amount, setAmount] = useState<number>(Math.round(row.balance));
   const [paymentId, setPaymentId] = useState<string | null>(null);
-  const [state, setState] = useState<"idle" | "sending" | "pending" | "success" | "failed">("idle");
+  const [state, setState] = useState<"idle" | "sending" | "pending" | "sent" | "success" | "failed">("idle");
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -750,21 +750,32 @@ function MpesaPaymentDialog({
       },
     });
     const functionErrorMessage = error ? await getEdgeFunctionErrorMessage(error) : null;
-    if (error || !(data as any)?.payment_id) {
+    const response = data as any;
+    if (error || response?.error) {
       setState("failed");
       setMessage(
-        (data as any)?.error ??
+        response?.error ??
           functionErrorMessage ??
           (lang === "en" ? "Could not start M-Pesa." : "M-Pesa haikuanza."),
       );
       return;
     }
-    setPaymentId((data as any).payment_id);
-    setState("pending");
+    const returnedPaymentId = response?.payment_id ?? response?.paymentId ?? response?.id;
+    const canTrackPayment = Boolean(returnedPaymentId);
+    if (canTrackPayment) {
+      setPaymentId(String(returnedPaymentId));
+      setState("pending");
+    } else {
+      setState("sent");
+    }
     setMessage(
       lang === "en"
-        ? "Check the customer phone and enter the M-Pesa PIN. We will confirm the result here."
-        : "Angalia simu ya mteja na uweke PIN ya M-Pesa. Tutathibitisha hapa.",
+        ? canTrackPayment
+          ? "Check the customer phone and enter the M-Pesa PIN. We will confirm the result here."
+          : "Prompt sent. Ask the customer to check their phone and enter the M-Pesa PIN."
+        : canTrackPayment
+          ? "Angalia simu ya mteja na uweke PIN ya M-Pesa. Tutathibitisha hapa."
+          : "Ombi limetumwa. Mwambie mteja aangalie simu yake na aweke PIN ya M-Pesa.",
     );
   };
 
@@ -792,7 +803,7 @@ function MpesaPaymentDialog({
             min="1"
             step="1"
             required
-            disabled={state === "sending" || state === "pending"}
+            disabled={state === "sending" || state === "pending" || state === "sent"}
             value={amount}
             onChange={(e) => setAmount(Number(e.target.value))}
             className="tap-target rounded-xl border border-input bg-card px-4 text-xl font-bold"
@@ -800,7 +811,7 @@ function MpesaPaymentDialog({
         </label>
         {message && (
           <p
-            className={`rounded-xl p-3 text-sm font-semibold ${state === "failed" ? "bg-danger/10 text-danger" : state === "success" ? "bg-primary/10 text-primary" : "bg-secondary"}`}
+            className={`rounded-xl p-3 text-sm font-semibold ${state === "failed" ? "bg-danger/10 text-danger" : state === "success" || state === "sent" ? "bg-primary/10 text-primary" : "bg-secondary"}`}
           >
             {message}
           </p>
@@ -811,13 +822,13 @@ function MpesaPaymentDialog({
             onClick={onClose}
             className="tap-target flex-1 rounded-2xl border border-border font-semibold"
           >
-            {state === "success" || state === "failed"
+            {state === "success" || state === "failed" || state === "sent"
               ? lang === "en"
                 ? "Close"
                 : "Funga"
               : tCancel(lang)}
           </button>
-          {state !== "success" && state !== "pending" && (
+          {state !== "success" && state !== "pending" && state !== "sent" && (
             <button
               disabled={state === "sending" || !row.customers?.phone}
               className="tap-target flex-1 rounded-2xl bg-primary font-bold text-primary-foreground disabled:opacity-60"
