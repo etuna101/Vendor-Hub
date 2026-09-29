@@ -86,7 +86,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           phone,
           preferred_language: preferredLanguage,
         },
-        emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+        emailRedirectTo:
+          typeof window !== "undefined"
+            ? `${window.location.origin}/auth/signin?verified=1`
+            : undefined,
       },
     });
     if (error) return { error: error.message };
@@ -117,7 +120,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       type: "signup",
       email: email.trim(),
       options: {
-        emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+        emailRedirectTo:
+          typeof window !== "undefined"
+            ? `${window.location.origin}/auth/signin?verified=1`
+            : undefined,
       },
     });
     return error ? { error: signInErrorMessage(error.message) } : {};

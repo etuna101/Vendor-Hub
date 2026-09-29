@@ -14,6 +14,10 @@ verify_jwt = false
 [functions.send-sms]
 verify_jwt = false
 
+# Password reset is protected by phone-bound, expiring one-time codes.
+[functions.password-reset]
+verify_jwt = false
+
 # Invoke this only from a trusted scheduler with the CRON_SECRET header.
 [functions.debt-reminders]
 verify_jwt = false

@@ -21,8 +21,17 @@ already exists, that object is already correct — continue with the rest.
 ## 2. Auth settings
 
 - Authentication → Providers → Email: enable, and enable "Leaked password protection".
-- Authentication → URL Configuration: add your app URL (e.g. Vercel domain) to
-  Site URL and Redirect URLs.
+- Configure custom SMTP under Authentication → SMTP Settings. Verify the sender
+  address/domain with your mail provider, then enter its SMTP host, port, username,
+  and password. Supabase's built-in mail service is rate-limited and is not a
+  dependable production delivery service.
+- Authentication → URL Configuration: set Site URL to your deployed app origin
+  and add the origin, `https://<your-app-domain>/auth/signin*`, and
+  `https://<your-app-domain>/auth/forgot*` to Redirect URLs. Add localhost
+  callback URLs separately for local testing.
+- Authentication → Email Templates → Confirm signup: retain the Supabase
+  confirmation URL (`{{ .ConfirmationURL }}`) so the link verifies the account
+  before redirecting back to the app.
 - If you want Google sign-in, enable the Google provider and add its client id/secret.
 
 ## 3. Point the app at your project
@@ -82,13 +91,34 @@ dashboards. Do not commit this command with real values in scripts or source:
 supabase secrets set DARAJA_BASE_URL="https://sandbox.safaricom.co.ke" DARAJA_CONSUMER_KEY="<daraja-consumer-key>" DARAJA_CONSUMER_SECRET="<daraja-consumer-secret>" DARAJA_SHORTCODE="<sandbox-shortcode>" DARAJA_PASSKEY="<sandbox-passkey>" DARAJA_CALLBACK_URL="https://<your-project-ref>.supabase.co/functions/v1/mpesa-callback?token=<callback-token>" DARAJA_CALLBACK_TOKEN="<callback-token>" AT_USERNAME="<africas-talking-username>" AT_API_KEY="<africas-talking-api-key>" AT_SENDER_ID="<approved-sender-id>" AT_BASE_URL="https://api.africastalking.com"
 ```
 
+Phone-based password recovery also uses Africa's Talking. Generate a separate
+random secret with at least 32 characters for HMAC-protecting reset codes, and
+store it only as a Supabase Edge Function secret:
+
+```bash
+supabase secrets set PASSWORD_RESET_SECRET="<random-secret-at-least-32-characters>"
+```
+
+Apply the password-reset migration before deploying the function:
+
+```bash
+supabase db push
+```
+
 Deploy the functions that use those secrets:
 
 ```bash
 supabase functions deploy mpesa-stk
 supabase functions deploy send-sms
+supabase functions deploy password-reset
 supabase functions deploy debt-reminders --no-verify-jwt
 ```
+
+Test Africa's Talking using the sandbox username and sandbox API key first.
+With a test vendor account and its registered phone number, request a phone
+password reset in the app and confirm the SMS arrives; then verify the code and
+sign in with the new password. Production delivery requires live AT credentials,
+an approved sender ID if used, and an active, funded AT account.
 
 For local Edge Function development, use a local-only file such as
 `supabase/functions/.env` or pass `--env-file`. Keep it ignored by Git:

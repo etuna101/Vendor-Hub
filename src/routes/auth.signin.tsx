@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
@@ -20,7 +20,7 @@ export const Route = createFileRoute("/auth/signin")({
 
 function SignIn() {
   const { t } = useI18n();
-  const { signIn, resendVerification } = useAuth();
+  const { signIn, resendVerification, session } = useAuth();
   const nav = useNavigate();
   const { next } = Route.useSearch();
   const [email, setEmail] = useState("");
@@ -29,6 +29,12 @@ function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [resending, setResending] = useState(false);
+
+  useEffect(() => {
+    if (!session || new URLSearchParams(window.location.search).get("verified") !== "1") return;
+    toast.success("Email verified. Welcome to VendorHub.");
+    nav({ to: "/app/dashboard", replace: true });
+  }, [session, nav]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
