@@ -21,6 +21,7 @@ export function BottomNav() {
             <Link
               key={to}
               to={to}
+              preload="intent"
               className={`flex min-h-[64px] flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${active ? "text-primary" : "text-muted-foreground"}`}
             >
               <Icon size={22} strokeWidth={active ? 2.4 : 2} />

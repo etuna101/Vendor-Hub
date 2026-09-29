@@ -80,7 +80,7 @@ function SignIn() {
       <img
         src={showcase2}
         alt="Fresh produce vendor holding a crate of green peppers at a market stall"
-        className="fixed inset-0 -z-10 h-full w-full object-cover object-center"
+        className="fixed inset-0 -z-10 h-[100dvh] w-full object-cover object-[46%_center] sm:object-center"
       />
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-foreground/80 via-foreground/70 to-foreground/90" />
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 pt-8 pb-10">
