@@ -8,6 +8,13 @@ import {
 } from "../_shared/core.ts";
 import { sendTextMessage } from "../_shared/sms.ts";
 
+// Keep the Supabase Edge Runtime types local to this module so the web app's
+// TypeScript project does not need Deno globals.
+declare const Deno: {
+  env: { get(name: string): string | undefined };
+  serve(handler: (request: Request) => Response | Promise<Response>): void;
+};
+
 async function hashCode(phone: string, code: string) {
   const secret = Deno.env.get("PASSWORD_RESET_SECRET");
   if (!secret || secret.length < 32) {
@@ -34,7 +41,7 @@ function newCode() {
   return String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
 }
 
-Deno.serve(async (request) => {
+Deno.serve(async (request: Request) => {
   if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
