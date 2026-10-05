@@ -37,7 +37,7 @@ function SignUp() {
     if (error) return toast.error(error);
     if (requiresEmailVerification) {
       toast.success("Account created. Check your email to verify it before signing in.");
-      nav({ to: "/auth/signin" });
+      nav({ to: "/auth/check-email" });
       return;
     }
     toast.success("Account created!");

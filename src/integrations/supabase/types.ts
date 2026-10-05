@@ -283,6 +283,10 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approval_status: Database["public"]["Enums"]["approval_status"]
+          approved_at: string | null
+          approved_by: string | null
+          avatar_url: string | null
           business_name: string
           created_at: string
           email: string | null
@@ -291,9 +295,17 @@ export type Database = {
           id: string
           phone: string
           preferred_language: string
+          produce_type: string | null
+          rejection_reason: string | null
+          role: Database["public"]["Enums"]["user_role"]
+          stall_location: string | null
           updated_at: string
         }
         Insert: {
+          approval_status?: Database["public"]["Enums"]["approval_status"]
+          approved_at?: string | null
+          approved_by?: string | null
+          avatar_url?: string | null
           business_name: string
           created_at?: string
           email?: string | null
@@ -302,9 +314,17 @@ export type Database = {
           id: string
           phone: string
           preferred_language?: string
+          produce_type?: string | null
+          rejection_reason?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          stall_location?: string | null
           updated_at?: string
         }
         Update: {
+          approval_status?: Database["public"]["Enums"]["approval_status"]
+          approved_at?: string | null
+          approved_by?: string | null
+          avatar_url?: string | null
           business_name?: string
           created_at?: string
           email?: string | null
@@ -313,6 +333,10 @@ export type Database = {
           id?: string
           phone?: string
           preferred_language?: string
+          produce_type?: string | null
+          rejection_reason?: string | null
+          role?: Database["public"]["Enums"]["user_role"]
+          stall_location?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -474,6 +498,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_vendor_list: {
+        Args: Record<PropertyKey, never>
+        Returns: { user_id: string; full_name: string; business_name: string; phone: string; email: string; email_verified: boolean; approval_status: string; rejection_reason: string | null; created_at: string }[]
+      }
+      approve_vendor: { Args: { vendor_id: string }; Returns: undefined }
+      reject_vendor: { Args: { reason?: string | null; vendor_id: string }; Returns: undefined }
+      suspend_vendor: { Args: { vendor_id: string }; Returns: undefined }
+      reinstate_vendor: { Args: { vendor_id: string }; Returns: undefined }
       admin_platform_stats: { Args: never; Returns: Json }
       admin_vendor_overview: {
         Args: never
@@ -599,6 +631,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "vendor"
+      approval_status: "pending" | "approved" | "rejected" | "suspended"
       expense_category:
         | "transport"
         | "rent"
@@ -608,6 +641,7 @@ export type Database = {
         | "wages"
         | "market_fee"
         | "misc"
+      user_role: "vendor" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never

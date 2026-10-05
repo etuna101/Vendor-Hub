@@ -1,6 +1,8 @@
 import { Logo } from "./Logo";
 import { OfflineBadge } from "./OfflineBadge";
 import { useI18n, type Lang } from "@/lib/i18n";
+import { Link } from "@tanstack/react-router";
+import { CircleUserRound } from "lucide-react";
 
 export function TopBar({ right }: { right?: React.ReactNode }) {
   const { lang, setLang } = useI18n();
@@ -10,6 +12,9 @@ export function TopBar({ right }: { right?: React.ReactNode }) {
       <div className="flex min-w-0 items-center gap-2">
         <OfflineBadge />
         {right}
+        <Link to="/app/profile" aria-label={lang === "sw" ? "Wasifu wangu" : "My profile"} title={lang === "sw" ? "Wasifu wangu" : "My profile"} className="flex size-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
+          <CircleUserRound size={20} />
+        </Link>
         <div className="flex rounded-full border border-border bg-card p-0.5 text-sm font-semibold">
           {(["en", "sw"] as Lang[]).map((l) => (
             <button

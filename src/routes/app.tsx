@@ -12,8 +12,14 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/app")({
   ssr: false,
   beforeLoad: async () => {
-    const { data } = await supabase.auth.getSession();
-    if (!data.session) throw redirect({ to: "/auth/signin" });
+    const { data } = await supabase.auth.getUser();
+    const user = data.user;
+    if (!user) throw redirect({ to: "/auth/signin" });
+    if (!user.email_confirmed_at) throw redirect({ to: "/auth/check-email" });
+    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
+    if ((roles ?? []).some((role) => role.role === "admin")) return;
+    const { data: profile } = await supabase.from("profiles").select("approval_status").eq("id", user.id).maybeSingle();
+    if (!profile || profile.approval_status !== "approved") throw redirect({ to: "/account-status" });
   },
   component: AppShell,
 });

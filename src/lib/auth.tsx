@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     });
     if (error) return { error: error.message };
-    return { requiresEmailVerification: !data.session };
+    return { requiresEmailVerification: !data.session || !data.user?.email_confirmed_at };
   };
 
   const signIn: Ctx["signIn"] = async ({ email, password }) => {
