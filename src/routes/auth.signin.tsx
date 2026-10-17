@@ -39,40 +39,55 @@ function SignIn() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    const { error, requiresEmailVerification } = await signIn({ email, password });
-    if (error) {
+    setNeedsVerification(false);
+    try {
+      const { error, requiresEmailVerification } = await signIn({ email, password });
+      if (error) {
+        setNeedsVerification(Boolean(requiresEmailVerification));
+        toast.error(error);
+        return;
+      }
+      if (next) {
+        window.location.href = next;
+        return;
+      }
+
+      // If the role lookup is temporarily unavailable, continue to the vendor
+      // dashboard. The protected admin route still checks authorization itself.
+      const { supabase } = await import("@/integrations/supabase/client");
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError) console.error("[Auth] Failed to load signed-in user:", userError);
+      const uid = userData.user?.id;
+      let isAdmin = false;
+      if (uid) {
+        const { data: roles, error: rolesError } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", uid);
+        if (rolesError) console.error("[Auth] Failed to load user role:", rolesError);
+        isAdmin = (roles ?? []).some((role) => role.role === "admin");
+      }
+      await nav({ to: isAdmin ? "/admin" : "/app/dashboard" });
+    } catch (error) {
+      console.error("[Auth] Sign-in flow failed:", error);
+      toast.error("Could not complete sign-in. Check your connection and try again.");
+    } finally {
       setLoading(false);
-      setNeedsVerification(Boolean(requiresEmailVerification));
-      return toast.error(error);
     }
-    if (next) {
-      setLoading(false);
-      window.location.href = next;
-      return;
-    }
-    // Route based on role
-    const { supabase } = await import("@/integrations/supabase/client");
-    const { data: userData } = await supabase.auth.getUser();
-    const uid = userData.user?.id;
-    let isAdmin = false;
-    if (uid) {
-      const { data: roles, error: rolesError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", uid);
-      if (rolesError) console.error("[Auth] Failed to load user role:", rolesError);
-      isAdmin = (roles ?? []).some((role) => role.role === "admin");
-    }
-    setLoading(false);
-    nav({ to: isAdmin ? "/admin" : "/app/dashboard" });
   };
 
   const resend = async () => {
     setResending(true);
-    const { error } = await resendVerification(email);
-    setResending(false);
-    if (error) return toast.error(error);
-    toast.success("Verification email sent. Check your inbox and spam folder.");
+    try {
+      const { error } = await resendVerification(email);
+      if (error) return toast.error(error);
+      toast.success("Verification email sent. Check your inbox and spam folder.");
+    } catch (error) {
+      console.error("[Auth] Resend verification failed:", error);
+      toast.error("Could not send the verification email. Check your connection and try again.");
+    } finally {
+      setResending(false);
+    }
   };
 
   return (

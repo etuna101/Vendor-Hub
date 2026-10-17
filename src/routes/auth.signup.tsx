@@ -36,6 +36,9 @@ function SignUp() {
     setLoading(false);
     if (error) return toast.error(error);
     if (requiresEmailVerification) {
+      // Keep the signup address available on the verification screen so the
+      // vendor is not asked to enter the same email a second time.
+      window.sessionStorage.setItem("vendorhub:verification-email", form.email.trim());
       toast.success("Account created. Check your email to verify it before signing in.");
       nav({ to: "/auth/check-email" });
       return;
