@@ -15,7 +15,18 @@ export default defineConfig({
     server: { entry: "server" },
   },
   vite: {
+    // Keep Vite's resolved root in native Windows path format. The MCP plugin
+    // compares it against paths resolved by node:path and otherwise sees a
+    // slash mismatch on Windows.
+    root: process.cwd(),
     plugins: [
+      {
+        name: "normalize-windows-vite-root-for-mcp",
+        enforce: "pre",
+        configResolved(config) {
+          config.root = process.cwd();
+        },
+      },
       mcpPlugin(),
       VitePWA({
         registerType: "autoUpdate",
