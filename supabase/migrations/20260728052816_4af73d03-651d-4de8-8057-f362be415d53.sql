@@ -1,1 +1,3 @@
-INSERT INTO public.user_roles (user_id, role) VALUES ('a3dae86f-f39e-478f-b02a-09d9d053d90c', 'admin'), ('8de28b3a-e37b-4176-a7bc-4650d2aae449', 'admin') ON CONFLICT (user_id, role) DO NOTHING;
+-- Admin accounts are project-specific and must not be seeded with fixed UUIDs.
+-- Assign the first admin by email after creating that Auth account; see
+-- supabase/scripts/profile_admin_setup.sql.

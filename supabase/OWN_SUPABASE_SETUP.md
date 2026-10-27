@@ -5,7 +5,9 @@ The app currently uses the Lovable-managed backend. To run it fully on a Supabas
 ## 1. Create the schema in your project
 
 In your Supabase dashboard → SQL Editor → New query, paste the whole contents of
-`supabase/schema_bundle.sql` and run it. It creates, in order:
+`supabase/scripts/schema_bundle.sql` and run it. It creates, in order, the core
+schema and the vendor approval workflow. It also backfills Auth users who
+already exist:
 
 - enums (`app_role`, `expense_category`)
 - tables: `user_roles`, `profiles`, `products`, `stock_history`, `customers`,
@@ -14,6 +16,8 @@ In your Supabase dashboard → SQL Editor → New query, paste the whole content
 - functions/RPCs: `has_role`, `handle_new_user`, `record_sale`, `record_restock`,
   `record_stock_loss`, `admin_platform_stats`, `admin_vendor_overview`
 - the `on_auth_user_created` trigger that creates a profile + `vendor` role on signup
+- admin vendor listing and approve/reject/suspend/reinstate/delete RPCs
+- pending profiles and vendor roles for Auth users who registered earlier
 
 It is safe to run once on an empty project. If a statement fails because an object
 already exists, that object is already correct — continue with the rest.
@@ -143,10 +147,10 @@ on conflict (user_id, role) do nothing;
 
 ## 6. SMS reminders + M-Pesa STK push (run this if your project predates them)
 
-`supabase/schema_bundle.sql` already contains everything. If your project was
+`supabase/scripts/schema_bundle.sql` already contains everything. If your project was
 created from an older copy of the bundle, run only the update file instead:
 
-**SQL Editor → New query → paste `supabase/sql_payments_sms_update.sql` → Run.**
+**SQL Editor → New query → paste `supabase/scripts/sql_payments_sms_update.sql` → Run.**
 
 It is idempotent and adds:
 

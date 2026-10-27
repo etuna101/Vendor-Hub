@@ -54,6 +54,36 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
+-- Backfill Auth accounts created before the approval setup was installed, or
+-- left without an app profile/role by an earlier signup trigger failure.
+-- A placeholder phone keeps legacy accounts visible when their phone is empty
+-- or already belongs to another profile; the vendor can update it later.
+INSERT INTO public.profiles (id, full_name, business_name, phone, email, preferred_language,
+  approval_status, role)
+SELECT u.id,
+  COALESCE(u.raw_user_meta_data->>'full_name',''),
+  COALESCE(u.raw_user_meta_data->>'business_name',''),
+  CASE
+    WHEN NULLIF(btrim(u.raw_user_meta_data->>'phone'),'') IS NULL
+      OR EXISTS (SELECT 1 FROM public.profiles p WHERE p.phone = btrim(u.raw_user_meta_data->>'phone'))
+    THEN 'pending-' || u.id::text
+    ELSE btrim(u.raw_user_meta_data->>'phone')
+  END,
+  u.email,
+  CASE WHEN u.raw_user_meta_data->>'preferred_language' = 'sw' THEN 'sw' ELSE 'en' END,
+  'pending', 'vendor'
+FROM auth.users u
+WHERE NOT EXISTS (SELECT 1 FROM public.profiles p WHERE p.id = u.id)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public.user_roles (user_id, role)
+SELECT p.id, 'vendor'::public.app_role
+FROM public.profiles p
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.user_roles r WHERE r.user_id = p.id AND r.role::text = 'admin'
+)
+ON CONFLICT (user_id, role) DO NOTHING;
+
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
 RETURNS trigger LANGUAGE plpgsql SET search_path = '' AS $$
 BEGIN NEW.updated_at := now(); RETURN NEW; END $$;
