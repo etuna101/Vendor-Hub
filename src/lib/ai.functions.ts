@@ -210,7 +210,7 @@ async function callGateway(messages: any[]) {
 
 export const getDashboardInsight = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { language?: Lang }) => ({ language: d?.language === "sw" ? "sw" : "en" as Lang }))
+  .validator((d: { language?: Lang }) => ({ language: d?.language === "sw" ? "sw" : "en" as Lang }))
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context as any;
     const ctx = await buildVendorContext(supabase, userId);
@@ -226,7 +226,7 @@ export const getDashboardInsight = createServerFn({ method: "POST" })
 
 export const aiChat = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { question: string; language?: Lang }) => {
+  .validator((d: { question: string; language?: Lang }) => {
     const q = String(d?.question ?? "").trim();
     if (!q) throw new Error("Empty question");
     if (q.length > 500) throw new Error("Question too long");

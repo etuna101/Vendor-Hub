@@ -27,7 +27,7 @@ export function useProfile() {
       ]);
       if (error) throw error;
       if (authError) throw authError;
-      return { ...data, email: authData.user.email ?? null } as VendorProfile;
+      return { ...data, email: authData.user.email ?? null } as unknown as VendorProfile;
     },
   });
 }
@@ -36,7 +36,9 @@ export function useUpdateProfile() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: async (values: ProfileForm) => {
-      const { data, error } = await supabase.from("profiles").update(values).select("*").single();
+      // stall_location has no database column yet — keep it out of the update payload.
+      const { stall_location: _stallLocation, ...payload } = values;
+      const { data, error } = await supabase.from("profiles").update(payload).select("*").single();
       if (error) throw error;
       return data;
     },
@@ -51,7 +53,7 @@ export async function uploadAvatar(file: File, userId: string): Promise<string> 
   const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
   if (error) throw error;
   const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-  const { error: updateError } = await supabase.from("profiles").update({ avatar_url: data.publicUrl }).eq("id", userId);
+  const { error: updateError } = await supabase.from("profiles").update({ avatar_url: data.publicUrl } as any).eq("id", userId);
   if (updateError) throw updateError;
   return data.publicUrl;
 }
@@ -65,7 +67,7 @@ export function useVendors() {
   return useQuery({
     queryKey: ["admin-vendors"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("admin_vendor_list");
+      const { data, error } = await (supabase.rpc as any)("admin_vendor_list");
       if (error) throw error;
       return (data ?? []) as AdminVendor[];
     },
@@ -76,8 +78,8 @@ export function useVendorAction() {
   return useMutation({
     mutationFn: async ({ id, action, reason }: { id: string; action: "approve_vendor" | "reject_vendor" | "suspend_vendor" | "reinstate_vendor"; reason?: string }) => {
       const result = action === "reject_vendor"
-        ? await supabase.rpc(action, { vendor_id: id, reason: reason ?? null })
-        : await supabase.rpc(action, { vendor_id: id });
+        ? await (supabase.rpc as any)(action, { vendor_id: id, reason: reason ?? null })
+        : await (supabase.rpc as any)(action, { vendor_id: id });
       if (result.error) throw result.error;
     },
     onSuccess: () => client.invalidateQueries({ queryKey: ["admin-vendors"] }),
