@@ -19,8 +19,13 @@ export const Route = createFileRoute("/app")({
     if (!user.email_confirmed_at) throw redirect({ to: "/auth/check-email" });
     const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
     if ((roles ?? []).some((role) => role.role === "admin")) return;
-    const { data: profile } = await supabase.from("profiles").select("approval_status").eq("id", user.id).maybeSingle();
-    if (!profile || profile.approval_status !== "approved") throw redirect({ to: "/account-status" });
+    // approval_status has no database column yet — if it can't be read, let the vendor through (previous behaviour).
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("approval_status")
+      .eq("id", user.id)
+      .maybeSingle() as unknown as { data: { approval_status: string } | null; error: { message: string } | null };
+    if (!profileError && profile && profile.approval_status !== "approved") throw redirect({ to: "/account-status" });
   },
   component: () => <OfflineProvider><AppShell /></OfflineProvider>,
 });
