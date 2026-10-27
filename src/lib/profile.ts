@@ -76,10 +76,12 @@ export function useVendors() {
 export function useVendorAction() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, action, reason }: { id: string; action: "approve_vendor" | "reject_vendor" | "suspend_vendor" | "reinstate_vendor"; reason?: string }) => {
-      const result = action === "reject_vendor"
-        ? await (supabase.rpc as any)(action, { vendor_id: id, reason: reason ?? null })
-        : await (supabase.rpc as any)(action, { vendor_id: id });
+    mutationFn: async ({ id, action, reason }: { id: string; action: "approve_vendor" | "reject_vendor" | "suspend_vendor" | "reinstate_vendor" | "delete_vendor"; reason?: string }) => {
+      const result = action === "delete_vendor"
+        ? await (supabase.rpc as any)(action, { _vendor_id: id })
+        : action === "reject_vendor"
+          ? await (supabase.rpc as any)(action, { vendor_id: id, reason: reason ?? null })
+          : await (supabase.rpc as any)(action, { vendor_id: id });
       if (result.error) throw result.error;
     },
     onSuccess: () => client.invalidateQueries({ queryKey: ["admin-vendors"] }),

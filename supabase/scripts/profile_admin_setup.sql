@@ -105,11 +105,19 @@ REVOKE INSERT, DELETE ON public.profiles FROM authenticated;
 CREATE TABLE IF NOT EXISTS public.admin_audit_log (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   actor_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE RESTRICT,
-  action text NOT NULL CHECK (action IN ('approve','reject','suspend','reinstate')),
-  target_vendor_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  action text NOT NULL CHECK (action IN ('approve','reject','suspend','reinstate','delete')),
+  target_vendor_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
   reason text,
   created_at timestamptz NOT NULL DEFAULT now()
 );
+-- Upgrade the audit table safely when this script was run before delete support.
+ALTER TABLE public.admin_audit_log ALTER COLUMN target_vendor_id DROP NOT NULL;
+ALTER TABLE public.admin_audit_log DROP CONSTRAINT IF EXISTS admin_audit_log_action_check;
+ALTER TABLE public.admin_audit_log ADD CONSTRAINT admin_audit_log_action_check
+  CHECK (action IN ('approve','reject','suspend','reinstate','delete'));
+ALTER TABLE public.admin_audit_log DROP CONSTRAINT IF EXISTS admin_audit_log_target_vendor_id_fkey;
+ALTER TABLE public.admin_audit_log ADD CONSTRAINT admin_audit_log_target_vendor_id_fkey
+  FOREIGN KEY (target_vendor_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
 ALTER TABLE public.admin_audit_log ENABLE ROW LEVEL SECURITY;
 GRANT SELECT ON public.admin_audit_log TO authenticated;
 DROP POLICY IF EXISTS admin_audit_read ON public.admin_audit_log;
@@ -154,6 +162,32 @@ REVOKE ALL ON FUNCTION public.approve_vendor(uuid), public.reject_vendor(uuid,te
   public.suspend_vendor(uuid), public.reinstate_vendor(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.approve_vendor(uuid), public.reject_vendor(uuid,text),
   public.suspend_vendor(uuid), public.reinstate_vendor(uuid) TO authenticated;
+
+-- Permanently delete a vendor account and its owned data. The audit row remains
+-- with a null target_vendor_id after the profile is cascaded away.
+CREATE OR REPLACE FUNCTION public.delete_vendor(_vendor_id uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = '' AS $$
+DECLARE _actor uuid := auth.uid();
+BEGIN
+  IF _actor IS NULL OR NOT public.is_admin() THEN
+    RAISE EXCEPTION 'not authorized' USING ERRCODE = '42501';
+  END IF;
+  IF _vendor_id IS NULL THEN RAISE EXCEPTION 'vendor id is required'; END IF;
+  IF _vendor_id = _actor THEN RAISE EXCEPTION 'admins cannot delete their own account'; END IF;
+  IF EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = _vendor_id AND role::text = 'admin') THEN
+    RAISE EXCEPTION 'admin accounts cannot be deleted through vendor management';
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = _vendor_id) THEN
+    RAISE EXCEPTION 'vendor not found';
+  END IF;
+
+  INSERT INTO public.admin_audit_log(actor_id, action, target_vendor_id, reason)
+    VALUES (_actor, 'delete', _vendor_id, 'Vendor account and associated data permanently deleted');
+  DELETE FROM auth.users WHERE id = _vendor_id;
+  IF NOT FOUND THEN RAISE EXCEPTION 'vendor auth account not found'; END IF;
+END $$;
+REVOKE ALL ON FUNCTION public.delete_vendor(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.delete_vendor(uuid) TO authenticated;
 
 -- Secure admin listing includes email confirmation state from auth.users.
 CREATE OR REPLACE FUNCTION public.admin_vendor_list()
