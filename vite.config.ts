@@ -24,7 +24,7 @@ export default defineConfig({
         name: "normalize-windows-vite-root-for-mcp",
         enforce: "pre",
         configResolved(config) {
-          config.root = process.cwd();
+          (config as unknown as { root: string }).root = process.cwd();
         },
       },
       mcpPlugin(),
