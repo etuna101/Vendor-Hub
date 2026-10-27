@@ -6,6 +6,7 @@ import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
 import showcase2 from "@/assets/vendor-showcase-2.jpg";
+import showcase2Mobile from "@/assets/vendor-showcase-2-mobile.jpg";
 
 export const Route = createFileRoute("/auth/signin")({
   validateSearch: (s: Record<string, unknown>): { next?: string } => {
@@ -92,11 +93,18 @@ function SignIn() {
 
   return (
     <div className="relative isolate min-h-screen">
-      <img
-        src={showcase2}
-        alt="Fresh produce vendor holding a crate of green peppers at a market stall"
-        className="fixed inset-0 -z-10 h-[100dvh] w-full object-cover object-[46%_center] sm:object-center"
-      />
+      <picture className="fixed inset-0 -z-10 h-[100dvh] w-full">
+        <source srcSet={showcase2Mobile} media="(max-width: 640px)" />
+        <img
+          src={showcase2}
+          alt="Fresh produce vendor holding a crate of green peppers at a market stall"
+          width={1280}
+          height={960}
+          loading="lazy"
+          fetchPriority="low"
+          className="h-full w-full object-cover object-[46%_center] sm:object-center"
+        />
+      </picture>
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-foreground/80 via-foreground/70 to-foreground/90" />
       <div className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-5 pt-8 pb-10">
         <Logo />

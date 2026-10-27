@@ -17,7 +17,7 @@ function Reports() {
   const periodLabel = t(period);
   const wasteTitle = lang === "sw" ? "Ripoti ya hasara ya mboga" : "Spoilage & waste report";
 
-  const { data } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["reports", period],
     queryFn: async () => {
       const [salesRes, expRes, prodRes, lossRes] = await Promise.all([
@@ -44,6 +44,8 @@ function Reports() {
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-extrabold">{t("reports")}</h1>
       <QuickFilterBar value={period} onChange={setPeriod} />
+
+      {isLoading ? <div className="space-y-3" aria-label={lang === "sw" ? "Inapakia" : "Loading"}>{Array.from({ length: 5 }, (_, i) => <div key={i} className="h-32 animate-pulse rounded-2xl bg-primary/10" />)}</div> : <>
 
       <Section
         title={t("salesSummary")}
@@ -102,6 +104,7 @@ function Reports() {
         <SmallLine label={t("lowStock")} value={String(data?.lowCount ?? 0)} />
         <SmallLine label={t("stockValue")} value={formatKsh(data?.stockValue ?? 0)} />
       </Section>
+      </>}
     </div>
   );
 }

@@ -1,130 +1,145 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { changeAdminRole } from "@/lib/admin-role.functions";
+import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner";
-import { ShieldCheck, X } from "lucide-react";
+import { ShieldCheck, UserRoundPlus, UserRoundMinus } from "lucide-react";
 
 export const Route = createFileRoute("/admin/admins")({ component: AdminsPage });
 
 type Profile = { id: string; full_name: string; business_name: string; phone: string };
 
+async function loadRoleProfiles(role: "admin" | "vendor") {
+  const { data: roles, error: roleError } = await supabase.from("user_roles").select("user_id").eq("role", role);
+  if (roleError) throw roleError;
+  let ids = (roles ?? []).map((entry) => entry.user_id);
+  // Legacy accounts may have both role rows. Never show an admin as a vendor
+  // while the database cleanup migration/script is being applied.
+  if (role === "vendor" && ids.length) {
+    const { data: adminRoles, error: adminRoleError } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "admin");
+    if (adminRoleError) throw adminRoleError;
+    const adminIds = new Set((adminRoles ?? []).map((entry) => entry.user_id));
+    ids = ids.filter((id) => !adminIds.has(id));
+  }
+  if (!ids.length) return [] as Profile[];
+  const { data, error } = await supabase.from("profiles").select("id, full_name, business_name, phone").in("id", ids).order("full_name");
+  if (error) throw error;
+  return (data ?? []) as Profile[];
+}
+
 function AdminsPage() {
-  const [admins, setAdmins] = useState<Profile[] | null>(null);
-  const [me, setMe] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Profile[]>([]);
-  const [busy, setBusy] = useState(false);
-
-  const load = async () => {
-    const { data: userData } = await supabase.auth.getUser();
-    setMe(userData.user?.id ?? null);
-    const { data: roles, error } = await supabase.from("user_roles").select("user_id").eq("role", "admin");
-    if (error) { toast.error(error.message); return; }
-    const ids = (roles ?? []).map((r: any) => r.user_id);
-    if (ids.length === 0) { setAdmins([]); return; }
-    const { data: profs } = await supabase.from("profiles").select("id, full_name, business_name, phone").in("id", ids);
-    setAdmins((profs ?? []) as any);
+  const { lang } = useI18n();
+  const sw = lang === "sw";
+  const queryClient = useQueryClient();
+  const mutateRole = useServerFn(changeAdminRole);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const { data: me } = useQuery({ queryKey: ["current-user-id"], queryFn: async () => (await supabase.auth.getUser()).data.user?.id ?? null, staleTime: 5 * 60_000 });
+  const { data: admins, isLoading: adminsLoading, error: adminsError } = useQuery({
+    queryKey: ["admin-role-profiles", "admin"],
+    queryFn: () => loadRoleProfiles("admin"),
+    staleTime: 60_000,
+  });
+  const { data: vendors, isLoading: vendorsLoading, error: vendorsError } = useQuery({
+    queryKey: ["admin-role-profiles", "vendor"],
+    queryFn: () => loadRoleProfiles("vendor"),
+    staleTime: 60_000,
+  });
+  const failureMessage = (error: unknown) => {
+    const code = error instanceof Error ? error.message : "";
+    if (code.includes("CANNOT_DEMOTE_SELF")) return sw ? "Huwezi kujiondoa mwenyewe kama msimamizi." : "You cannot remove your own admin access.";
+    if (code.includes("LAST_ADMIN")) return sw ? "Lazima angalau msimamizi mmoja abaki." : "At least one admin must remain.";
+    if (code.includes("FORBIDDEN")) return sw ? "Huna ruhusa ya kubadilisha wasimamizi." : "You are not allowed to change admins.";
+    return sw ? "Mabadiliko hayakufaulu. Jaribu tena." : "The role change failed. Please try again.";
   };
 
-  useEffect(() => { load(); }, []);
-
-  const search = async () => {
-    const q = query.trim();
-    if (!q) { setResults([]); return; }
-    const clean = q.replace(/[^0-9+a-zA-Z ]/g, "");
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, full_name, business_name, phone")
-      .or(`phone.ilike.%${clean}%,full_name.ilike.%${clean}%,business_name.ilike.%${clean}%`)
-      .limit(10);
-    setResults((data ?? []) as any);
-  };
-
-  const promote = async (userId: string) => {
-    setBusy(true);
-    const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: "admin" });
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success("Promoted to admin");
-    setQuery(""); setResults([]);
-    load();
-  };
-
-  const revoke = async (userId: string) => {
-    if (userId === me) return toast.error("You cannot revoke your own admin role.");
-    if (!confirm("Revoke admin access for this account?")) return;
-    setBusy(true);
-    const { error } = await supabase.from("user_roles").delete().eq("user_id", userId).eq("role", "admin");
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success("Admin access revoked");
-    load();
+  const changeRole = async (person: Profile, promote: boolean) => {
+    const prompt = promote
+      ? (sw
+        ? `Mpe ${person.full_name || person.business_name} uwezo wa msimamizi? Ataweza kusimamia wauzaji, kuona takwimu za mfumo, na kubadilisha mipangilio ya wasimamizi na AI.`
+        : `Promote ${person.full_name || person.business_name} to admin? They will be able to manage vendors, view platform statistics, and change admin and AI settings.`)
+      : (sw
+        ? `Ondoa uwezo wa msimamizi wa ${person.full_name || person.business_name}? Atakuwa tena muuzaji wa kawaida.`
+        : `Remove admin access from ${person.full_name || person.business_name}? They will return to the vendor role.`);
+    if (!window.confirm(prompt)) return;
+    setBusyId(person.id);
+    try {
+      await mutateRole({ data: { userId: person.id, promote } });
+      toast.success(promote
+        ? (sw ? "Ameongezwa kama msimamizi." : "Promoted to admin.")
+        : (sw ? "Uwezo wa msimamizi umeondolewa." : "Admin access removed."));
+      await queryClient.invalidateQueries({ queryKey: ["admin-role-profiles"] });
+    } catch (error) {
+      toast.error(failureMessage(error));
+    } finally {
+      setBusyId(null);
+    }
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-2xl md:text-3xl font-extrabold">Manage Admins</h1>
-        <p className="text-muted-foreground text-sm">Only existing admins can grant or revoke admin access.</p>
-      </div>
+    <div className="max-w-4xl space-y-6">
+      <header>
+        <h1 className="text-2xl font-extrabold md:text-3xl">{sw ? "Simamia Wasimamizi" : "Manage Admins"}</h1>
+        <p className="text-sm text-muted-foreground">{sw ? "Wasimamizi wanaweza kusimamia wauzaji, takwimu za mfumo, mipangilio ya AI na akaunti za wasimamizi." : "Admins can manage vendors, platform statistics, AI settings, and admin accounts."}</p>
+      </header>
 
-      <div className="rounded-2xl bg-card border p-4 space-y-3">
-        <div className="font-bold">Current admins</div>
-        {admins === null ? <p className="text-muted-foreground text-sm">Loading…</p>
-          : admins.length === 0 ? <p className="text-muted-foreground text-sm">No admins yet.</p>
-          : (
-          <ul className="divide-y">
-            {admins.map((a) => (
-              <li key={a.id} className="flex items-center justify-between py-3">
-                <div>
-                  <div className="font-semibold flex items-center gap-2"><ShieldCheck size={16} className="text-primary" /> {a.full_name || "—"} {a.id === me && <span className="text-xs text-muted-foreground">(you)</span>}</div>
-                  <div className="text-xs text-muted-foreground">{a.business_name} · {a.phone}</div>
-                </div>
-                <button
-                  onClick={() => revoke(a.id)} disabled={busy || a.id === me}
-                  className="rounded-xl border px-3 py-1.5 text-sm font-semibold text-destructive disabled:opacity-40 hover:bg-destructive/10 flex items-center gap-1"
-                >
-                  <X size={14} /> Revoke
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <RoleList title={sw ? "Wasimamizi wa sasa" : "Current admins"} people={admins ?? []} loading={adminsLoading} error={adminsError} empty={sw ? "Hakuna wasimamizi." : "No admins found."}
+        lang={lang}
+        renderAction={(person) => {
+          const self = person.id === me;
+          const lastAdmin = (admins?.length ?? 0) <= 1;
+          return <button onClick={() => changeRole(person, false)} disabled={busyId !== null || self || lastAdmin} className="tap-target inline-flex items-center gap-1 rounded-xl border px-3 py-1.5 text-sm font-semibold text-destructive disabled:opacity-40">
+            <UserRoundMinus size={15} />{sw ? "Ondoa msimamizi" : "Remove Admin"}
+          </button>;
+        }}
+        badge={(person) => person.id === me ? (sw ? "(wewe)" : "(you)") : null}
+      />
 
-      <div className="rounded-2xl bg-card border p-4 space-y-3">
-        <div className="font-bold">Promote a vendor to admin</div>
-        <div className="flex gap-2">
-          <input
-            value={query} onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") search(); }}
-            placeholder="Search by phone, name, or business"
-            className="flex-1 rounded-xl border bg-background px-4 py-2 text-sm"
-          />
-          <button onClick={search} className="rounded-xl bg-primary px-5 py-2 text-sm font-bold text-primary-foreground">Search</button>
-        </div>
-        {results.length > 0 && (
-          <ul className="divide-y">
-            {results.map((r) => {
-              const isAdmin = admins?.some((a) => a.id === r.id);
-              return (
-                <li key={r.id} className="flex items-center justify-between py-3">
-                  <div>
-                    <div className="font-semibold">{r.full_name || "—"}</div>
-                    <div className="text-xs text-muted-foreground">{r.business_name} · {r.phone}</div>
-                  </div>
-                  <button
-                    onClick={() => promote(r.id)} disabled={busy || isAdmin}
-                    className="rounded-xl bg-primary px-3 py-1.5 text-sm font-bold text-primary-foreground disabled:opacity-40"
-                  >
-                    {isAdmin ? "Already admin" : "Promote"}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </div>
+      <RoleList title={sw ? "Wauzaji" : "Vendors"} people={vendors ?? []} loading={vendorsLoading} error={vendorsError} empty={sw ? "Hakuna wauzaji." : "No vendors found."}
+        lang={lang}
+        renderAction={(person) => <button onClick={() => changeRole(person, true)} disabled={busyId !== null} className="tap-target inline-flex items-center gap-1 rounded-xl bg-primary px-3 py-1.5 text-sm font-bold text-primary-foreground disabled:opacity-50">
+          <UserRoundPlus size={15} />{sw ? "Mpe uwezo wa msimamizi" : "Promote to Admin"}
+        </button>}
+      />
     </div>
   );
+}
+
+function RoleList({ title, people, loading, error, empty, renderAction, badge, lang }: {
+  title: string;
+  people: Profile[];
+  loading: boolean;
+  error: unknown;
+  empty: string;
+  renderAction: (person: Profile) => React.ReactNode;
+  badge?: (person: Profile) => string | null;
+  lang: "en" | "sw";
+}) {
+  const [page, setPage] = useState(0);
+  const pageSize = 50;
+  const visible = people.slice(page * pageSize, (page + 1) * pageSize);
+  return <section className="space-y-3 rounded-2xl border bg-card p-4">
+    <h2 className="font-bold">{title}</h2>
+    {loading ? <div className="space-y-3" aria-label="Loading"><div className="h-12 animate-pulse rounded-xl bg-muted" /><div className="h-12 animate-pulse rounded-xl bg-muted" /></div>
+      : error ? <p role="alert" className="text-sm text-destructive">Could not load this list. {error instanceof Error ? error.message : ""}</p>
+      : !people.length ? <p className="text-sm text-muted-foreground">{empty}</p>
+      : <><ul className="divide-y">{visible.map((person) => <li key={person.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 font-semibold"><ShieldCheck size={16} className="shrink-0 text-primary" />{person.full_name || "—"}{badge?.(person) && <span className="text-xs text-muted-foreground">{badge(person)}</span>}</div>
+          <p className="text-xs text-muted-foreground">{person.business_name || "—"} · {person.phone || "—"}</p>
+        </div>
+        {renderAction(person)}
+      </li>)}</ul>{people.length > pageSize && <div className="flex items-center justify-between pt-2 text-sm">
+        <span className="text-muted-foreground">{page * pageSize + 1}–{Math.min((page + 1) * pageSize, people.length)} / {people.length}</span>
+        <div className="flex gap-2">
+          <button onClick={() => setPage((current) => Math.max(0, current - 1))} disabled={page === 0} className="rounded-lg border px-3 py-1.5 disabled:opacity-40">{lang === "sw" ? "Iliyotangulia" : "Previous"}</button>
+          <button onClick={() => setPage((current) => current + 1)} disabled={(page + 1) * pageSize >= people.length} className="rounded-lg border px-3 py-1.5 disabled:opacity-40">{lang === "sw" ? "Ifuatayo" : "Next"}</button>
+        </div>
+      </div>}</>}
+  </section>;
 }

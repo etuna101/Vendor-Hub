@@ -21,6 +21,10 @@ function Landing() {
       <img
         src={showcase1}
         alt="Mama Mboga vendor seated at her open-air fruit and vegetable stall"
+        width={399}
+        height={501}
+        loading="lazy"
+        fetchPriority="low"
         className="fixed inset-0 -z-10 h-full w-full object-cover object-center"
       />
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-foreground/80 via-foreground/70 to-foreground/90" />

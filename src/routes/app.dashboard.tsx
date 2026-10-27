@@ -27,7 +27,7 @@ function Dashboard() {
     },
   });
 
-  const { data } = useQuery({
+  const { data, isLoading: dashboardLoading } = useQuery({
     queryKey: ["dashboard", period],
     queryFn: async () => {
       const [salesRes, expensesRes, productsRes, creditRes] = await Promise.all([
@@ -86,16 +86,16 @@ function Dashboard() {
       <InsightCard loading={insightLoading} text={insightData?.insight} lang={lang} />
 
 
-      <div className="grid grid-cols-2 gap-3">
+      {dashboardLoading ? <div className="grid grid-cols-2 gap-3" aria-label={lang === "sw" ? "Inapakia" : "Loading"}>{Array.from({ length: 6 }, (_, i) => <div key={i} className="h-28 animate-pulse rounded-2xl bg-primary/10" />)}</div> : <div className="grid grid-cols-2 gap-3">
         <Stat onClick={() => nav({ to: "/app/sales" })} icon={<ShoppingCart size={18} />} label={t("totalSales")} value={formatKsh(data?.sales ?? 0)} tone="primary" />
         <Stat onClick={() => nav({ to: "/app/expenses" })} icon={<Receipt size={18} />} label={t("totalExpenses")} value={formatKsh(data?.expenses ?? 0)} tone="muted" />
         <Stat onClick={() => nav({ to: "/app/reports" })} icon={<Coins size={18} />} label={`${t("profit")} — ${t(period)}`} value={formatKsh(data?.profit ?? 0)} tone={data && data.profit >= 0 ? "primary" : "danger"} big />
         <Stat onClick={() => nav({ to: "/app/inventory", search: { low: 1 } })} icon={<AlertTriangle size={18} />} label={t("lowStock")} value={String(data?.lowStock ?? 0)} tone={data && data.lowStock > 0 ? "warning" : "muted"} />
         <Stat onClick={() => nav({ to: "/app/credit" })} icon={<HandCoins size={18} />} label={t("outstandingCredit")} value={formatKsh(data?.owed ?? 0)} tone={data && data.owed > 0 ? "danger" : "muted"} />
         <Stat onClick={() => nav({ to: "/app/credit" })} icon={<Users size={18} />} label={t("customersOwing")} value={String(data?.customersOwing ?? 0)} tone="muted" />
-      </div>
+      </div>}
 
-      <TrendCard points={trend} label={`${t("totalSales")} — ${t(period)}`} lang={lang} />
+      {dashboardLoading ? <div className="h-48 animate-pulse rounded-2xl bg-primary/10" /> : <TrendCard points={trend} label={`${t("totalSales")} — ${t(period)}`} lang={lang} />}
 
       <div className="grid grid-cols-2 gap-3">
         <Link to="/app/reports" className="card-soft tap-target flex items-center justify-center gap-2 font-semibold text-primary">

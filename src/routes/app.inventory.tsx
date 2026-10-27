@@ -25,11 +25,12 @@ function Inventory() {
   const { low } = useSearch({ from: "/app/inventory" });
   const qc = useQueryClient();
   const [showAdd, setShowAdd] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(50);
   const [restocking, setRestocking] = useState<string | null>(null);
   const [losing, setLosing] = useState<string | null>(null);
   const [prefillQty, setPrefillQty] = useState<number>(1);
 
-  const { data: products = [] } = useQuery({
+  const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ["products"],
     queryFn: () =>
       offlineList<any>("products", async () => {
@@ -58,6 +59,7 @@ function Inventory() {
   const openRestock = (id: string, qty: number) => { setPrefillQty(qty > 0 ? qty : 1); setRestocking(id); };
 
   const filtered = low ? products.filter((p) => Number(p.current_stock) <= Number(p.low_stock_threshold)) : products;
+  const visibleProducts = filtered.slice(0, visibleCount);
 
   return (
     <div className="flex flex-col gap-4">
@@ -109,11 +111,11 @@ function Inventory() {
         </div>
       )}
 
-      {filtered.length === 0 ? (
+      {productsLoading ? <div className="grid gap-3" aria-label={lang === "sw" ? "Inapakia" : "Loading"}>{Array.from({ length: 4 }, (_, i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-primary/10" />)}</div> : filtered.length === 0 ? (
         <EmptyState onAdd={() => setShowAdd(true)} label={t("empty_products")} cta={t("addProduct")} />
       ) : (
         <div className="grid gap-3">
-          {filtered.map((p) => {
+          {visibleProducts.map((p) => {
             const isLow = Number(p.current_stock) <= Number(p.low_stock_threshold);
             const a = adviceById[p.id];
             return (
@@ -149,6 +151,7 @@ function Inventory() {
           })}
         </div>
       )}
+      {!productsLoading && visibleCount < filtered.length && <button onClick={() => setVisibleCount((count) => count + 50)} className="tap-target rounded-xl border px-4 font-semibold">{lang === "sw" ? "Onyesha bidhaa zaidi" : "Show more products"}</button>}
 
       {showAdd && <AddProductDialog onClose={() => setShowAdd(false)} onSaved={() => { qc.invalidateQueries({ queryKey: ["products"] }); setShowAdd(false); }} />}
       {restocking && <RestockDialog productId={restocking} initialQty={prefillQty} product={products.find((p) => p.id === restocking)!} onClose={() => setRestocking(null)} onSaved={() => { qc.invalidateQueries(); setRestocking(null); }} />}

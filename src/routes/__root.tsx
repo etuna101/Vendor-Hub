@@ -12,7 +12,6 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { LanguageProvider } from "@/lib/i18n";
 import { AuthProvider } from "@/lib/auth";
-import { OfflineProvider } from "@/lib/offline/OfflineProvider";
 import { registerAppServiceWorker } from "@/lib/pwa/register-sw";
 import { Toaster } from "@/components/ui/sonner";
 const logoUrl = "/favicon.png";
@@ -60,7 +59,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   return (
@@ -138,12 +137,10 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <LanguageProvider>
-        <OfflineProvider>
-          <AuthProvider>
-            <Outlet />
-            <Toaster position="top-center" />
-          </AuthProvider>
-        </OfflineProvider>
+        <AuthProvider>
+          <Outlet />
+          <Toaster position="top-center" />
+        </AuthProvider>
       </LanguageProvider>
     </QueryClientProvider>
   );

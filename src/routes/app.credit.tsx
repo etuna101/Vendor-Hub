@@ -66,8 +66,9 @@ function CreditScreen() {
   const [remindFor, setRemindFor] = useState<CreditRow | null>(null);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState<"all" | "owing" | "cleared">("all");
+  const [visibleCount, setVisibleCount] = useState(50);
 
-  const { data: rows = [] } = useQuery<CreditRow[]>({
+  const { data: rows = [], isLoading } = useQuery<CreditRow[]>({
     queryKey: ["credit-sales-all"],
     queryFn: async () => {
       const { data: sales, error } = await supabase
@@ -124,6 +125,7 @@ function CreditScreen() {
         r.product_name_snapshot.toLowerCase().includes(q),
     );
   }, [tab, rows, owing, cleared, search]);
+  const visibleRows = visible.slice(0, visibleCount);
 
   const markPaid = async (r: CreditRow) => {
     if (r.balance > 0) {
@@ -220,7 +222,7 @@ function CreditScreen() {
         </div>
       </div>
 
-      {visible.length === 0 ? (
+      {isLoading ? <div className="grid gap-2" aria-label={lang === "sw" ? "Inapakia" : "Loading"}>{Array.from({ length: 4 }, (_, i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-primary/10" />)}</div> : visible.length === 0 ? (
         <div className="card-soft flex flex-col items-center gap-3 p-10 text-center">
           <div className="grid h-16 w-16 place-items-center rounded-full bg-secondary">
             <CreditCard className="text-primary" />
@@ -236,7 +238,7 @@ function CreditScreen() {
         </div>
       ) : (
         <div className="grid gap-2">
-          {visible.map((s) => {
+          {visibleRows.map((s) => {
             const badge = !s.credit_paid && s.balance > 0 ? dueLabel(s, lang) : null;
             return (
               <div key={s.id} className={`card-soft p-4 ${s.overdue ? "border-danger" : ""}`}>
@@ -328,6 +330,7 @@ function CreditScreen() {
           })}
         </div>
       )}
+      {!isLoading && visibleCount < visible.length && <button onClick={() => setVisibleCount((count) => count + 50)} className="tap-target rounded-xl border px-4 font-semibold">{lang === "sw" ? "Onyesha rekodi zaidi" : "Show more records"}</button>}
 
       {payingFor && (
         <PaymentDialog

@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { useI18n } from "@/lib/i18n";
 import { LogOut } from "lucide-react";
 import { DueDebtNotifications } from "@/components/DueDebtNotifications";
+import { OfflineProvider } from "@/lib/offline/OfflineProvider";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/app")({
     const { data: profile } = await supabase.from("profiles").select("approval_status").eq("id", user.id).maybeSingle();
     if (!profile || profile.approval_status !== "approved") throw redirect({ to: "/account-status" });
   },
-  component: AppShell,
+  component: () => <OfflineProvider><AppShell /></OfflineProvider>,
 });
 
 function AppShell() {

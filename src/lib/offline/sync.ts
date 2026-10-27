@@ -128,10 +128,11 @@ export async function processQueue(): Promise<SyncResult> {
           await db.queue.update(item.id!, { status: "needs_review", reviewReason: message });
           needsReview++;
         } else {
-          await db.queue.update(item.id!, {
-            status: "pending",
-            attempts: (item.attempts ?? 0) + 1,
-          });
+          const attempts = (item.attempts ?? 0) + 1;
+          await db.queue.update(item.id!, attempts >= 5
+            ? { status: "needs_review", reviewReason: "Retry limit reached. Check your connection and retry this item from the review panel." }
+            : { status: "pending", attempts });
+          if (attempts >= 5) needsReview++;
           break; // keep order: stop on the first retryable failure
         }
       }
@@ -157,6 +158,6 @@ export async function discardReviewItem(queueId: number) {
 export async function retryReviewItem(queueId: number) {
   const db = getDB();
   if (!db) return;
-  await db.queue.update(queueId, { status: "pending", reviewReason: undefined });
+  await db.queue.update(queueId, { status: "pending", attempts: 0, reviewReason: undefined });
   return processQueue();
 }

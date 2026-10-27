@@ -19,11 +19,12 @@ function SalesScreen() {
   const { t, lang } = useI18n();
   const [period, setPeriod] = useState<PeriodKey>("today");
   const [open, setOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(50);
   const [askPay, setAskPay] = useState<{ saleId: string; amount: number; phone?: string | null } | null>(null);
   const { from, to } = getPeriodRange(period);
   const qc = useQueryClient();
 
-  const { data: sales = [] } = useQuery({
+  const { data: sales = [], isLoading } = useQuery({
     queryKey: ["sales", period],
     queryFn: () =>
       offlineList<any>("sales", async () => {
@@ -37,6 +38,7 @@ function SalesScreen() {
   });
 
   const total = sales.reduce((s: number, r: any) => s + Number(r.total), 0);
+  const visibleSales = sales.slice(0, visibleCount);
 
 
   return (
@@ -52,7 +54,7 @@ function SalesScreen() {
         <span className="text-sm text-muted-foreground">{t("totalSales")} — {t(period)}</span>
         <span className="text-xl font-extrabold text-primary">{formatKsh(total)}</span>
       </div>
-      {sales.length === 0 ? (
+      {isLoading ? <div className="grid gap-2" aria-label={lang === "sw" ? "Inapakia" : "Loading"}>{Array.from({ length: 4 }, (_, i) => <div key={i} className="h-20 animate-pulse rounded-2xl bg-primary/10" />)}</div> : sales.length === 0 ? (
         <div className="card-soft flex flex-col items-center gap-3 p-8 text-center">
           <div className="grid h-16 w-16 place-items-center rounded-full bg-secondary"><ShoppingCart className="text-primary" /></div>
           <p className="text-muted-foreground">{t("empty_sales")}</p>
@@ -60,7 +62,7 @@ function SalesScreen() {
         </div>
       ) : (
         <div className="grid gap-2">
-          {sales.map((s: any) => (
+          {visibleSales.map((s: any) => (
             <div key={s.id} className="card-soft flex items-start justify-between gap-3 p-4">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
@@ -78,6 +80,7 @@ function SalesScreen() {
           ))}
         </div>
       )}
+      {!isLoading && visibleCount < sales.length && <button onClick={() => setVisibleCount((count) => count + 50)} className="tap-target rounded-xl border px-4 font-semibold">{lang === "sw" ? "Onyesha mauzo zaidi" : "Show more sales"}</button>}
       {open && (
         <NewSaleDialog
           onClose={() => setOpen(false)}

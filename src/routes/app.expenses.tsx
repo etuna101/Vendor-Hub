@@ -32,7 +32,7 @@ function ExpensesScreen() {
   const qc = useQueryClient();
   const { from, to } = getPeriodRange(period);
 
-  const { data: expenses = [] } = useQuery({
+  const { data: expenses = [], isLoading } = useQuery({
     queryKey: ["expenses", period],
     queryFn: () =>
       offlineList<any>("expenses", async () => {
@@ -60,7 +60,7 @@ function ExpensesScreen() {
         <span className="text-sm text-muted-foreground">{t("totalExpenses")} — {t(period)}</span>
         <span className="text-xl font-extrabold">{formatKsh(total)}</span>
       </div>
-      {expenses.length === 0 ? (
+      {isLoading ? <div className="grid gap-2" aria-label={lang === "sw" ? "Inapakia" : "Loading"}>{Array.from({ length: 4 }, (_, i) => <div key={i} className="h-20 animate-pulse rounded-2xl bg-primary/10" />)}</div> : expenses.length === 0 ? (
         <div className="card-soft flex flex-col items-center gap-3 p-8 text-center">
           <div className="grid h-16 w-16 place-items-center rounded-full bg-secondary"><Wallet className="text-primary" /></div>
           <p className="text-muted-foreground">{t("empty_expenses")}</p>

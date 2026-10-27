@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
@@ -19,22 +20,19 @@ function Assistant() {
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    history()
-      .then((r) => {
-        const past: Msg[] = [];
-        for (const m of r.messages) {
-          past.push({ role: "user", content: m.query });
-          past.push({ role: "assistant", content: m.response });
-        }
-        setMessages(past);
-      })
-      .catch(() => {});
-  }, []);
+  const { data: historyMessages = [], isLoading: historyLoading } = useQuery({
+    queryKey: ["assistant-history"],
+    queryFn: async () => (await history()).messages.flatMap((message: { query: string; response: string }) => [
+      { role: "user" as const, content: message.query },
+      { role: "assistant" as const, content: message.response },
+    ]),
+    staleTime: 60_000,
+  });
+  const allMessages = [...historyMessages, ...messages];
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, busy]);
+  }, [allMessages.length, busy]);
 
   const suggestions =
     lang === "sw"
@@ -73,7 +71,7 @@ function Assistant() {
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto pr-1">
-        {messages.length === 0 ? (
+        {historyLoading ? <div className="space-y-3" aria-label={lang === "sw" ? "Inapakia" : "Loading"}><div className="h-16 w-3/4 animate-pulse rounded-2xl bg-primary/10" /><div className="ml-auto h-16 w-2/3 animate-pulse rounded-2xl bg-primary/10" /></div> : allMessages.length === 0 ? (
           <div className="card-soft p-5">
             <p className="text-sm text-muted-foreground">
               {lang === "sw"
@@ -83,7 +81,7 @@ function Assistant() {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            {messages.map((m, i) => (
+            {allMessages.map((m, i) => (
               <div key={i} className={m.role === "user" ? "flex justify-end" : "flex justify-start"}>
                 <div
                   className={
