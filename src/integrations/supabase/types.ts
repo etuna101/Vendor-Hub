@@ -283,6 +283,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          approval_status: string
+          approved_at: string | null
           business_name: string
           created_at: string
           email: string | null
@@ -291,9 +293,12 @@ export type Database = {
           id: string
           phone: string
           preferred_language: string
+          rejection_reason: string | null
           updated_at: string
         }
         Insert: {
+          approval_status?: string
+          approved_at?: string | null
           business_name: string
           created_at?: string
           email?: string | null
@@ -302,9 +307,12 @@ export type Database = {
           id: string
           phone: string
           preferred_language?: string
+          rejection_reason?: string | null
           updated_at?: string
         }
         Update: {
+          approval_status?: string
+          approved_at?: string | null
           business_name?: string
           created_at?: string
           email?: string | null
@@ -313,6 +321,7 @@ export type Database = {
           id?: string
           phone?: string
           preferred_language?: string
+          rejection_reason?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -475,6 +484,20 @@ export type Database = {
     }
     Functions: {
       admin_platform_stats: { Args: never; Returns: Json }
+      admin_vendor_list: {
+        Args: never
+        Returns: {
+          approval_status: string
+          business_name: string
+          created_at: string
+          email: string
+          email_verified: boolean
+          full_name: string
+          phone: string
+          rejection_reason: string
+          user_id: string
+        }[]
+      }
       admin_vendor_overview: {
         Args: never
         Returns: {
@@ -487,6 +510,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      approve_vendor: { Args: { vendor_id: string }; Returns: undefined }
       create_pending_mpesa_payment: {
         Args: { _amount: number; _phone_number: string; _sale_id: string }
         Returns: {
@@ -514,6 +538,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      delete_vendor: { Args: { _vendor_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -596,6 +621,12 @@ export type Database = {
         }
         Returns: undefined
       }
+      reinstate_vendor: { Args: { vendor_id: string }; Returns: undefined }
+      reject_vendor: {
+        Args: { reason?: string; vendor_id: string }
+        Returns: undefined
+      }
+      suspend_vendor: { Args: { vendor_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "vendor"
