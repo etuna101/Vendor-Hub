@@ -21,7 +21,7 @@ function VendorsPage() {
   const pending = rows.filter((row) => row.approval_status === "pending").length;
   const vendorLoadError = error && typeof error === "object" && "message" in error
     ? String(error.message)
-    : error instanceof Error ? error.message : "Unknown error";
+    : "Unknown error";
   const isAdminPermissionError = /not authorized|permission denied|42501/i.test(vendorLoadError);
   const run = async (row: AdminVendor, kind: "approve_vendor" | "reject_vendor" | "suspend_vendor" | "reinstate_vendor" | "delete_vendor") => {
     if (kind === "delete_vendor" && !window.confirm(`Permanently delete ${row.full_name || row.business_name}? This removes their account and all associated business data. This cannot be undone.`)) return;
