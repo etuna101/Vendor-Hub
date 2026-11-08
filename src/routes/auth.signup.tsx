@@ -32,19 +32,25 @@ function SignUp() {
     event.preventDefault();
     if (form.password.length < 6) return toast.error("Password must be at least 6 characters");
     setLoading(true);
-    const { error, requiresEmailVerification } = await signUp({ ...form, preferredLanguage: lang });
-    setLoading(false);
-    if (error) return toast.error(error);
-    if (requiresEmailVerification) {
-      // Keep the signup address available on the verification screen so the
-      // vendor is not asked to enter the same email a second time.
-      window.sessionStorage.setItem("vendorhub:verification-email", form.email.trim());
-      toast.success("Account created. Check your email to verify it before signing in.");
-      nav({ to: "/auth/check-email" });
-      return;
+    try {
+      const { error, requiresEmailVerification } = await signUp({ ...form, preferredLanguage: lang });
+      if (error) return toast.error(error);
+      if (requiresEmailVerification) {
+        // Keep the signup address available on the verification screen so the
+        // vendor is not asked to enter the same email a second time.
+        window.sessionStorage.setItem("vendorhub:verification-email", form.email.trim());
+        toast.success("Account created. Check your email to verify it before signing in.");
+        nav({ to: "/auth/check-email" });
+        return;
+      }
+      toast.success("Account created!");
+      nav({ to: "/welcome" });
+    } catch (error) {
+      console.error("[Auth] Sign-up failed:", error);
+      toast.error("Could not create your account. Check your connection and try again.");
+    } finally {
+      setLoading(false);
     }
-    toast.success("Account created!");
-    nav({ to: "/welcome" });
   };
 
   return (

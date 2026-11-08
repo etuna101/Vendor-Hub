@@ -48,6 +48,16 @@ function signInErrorMessage(message: string) {
   return "Unable to sign in right now. Please try again.";
 }
 
+function verificationEmailErrorMessage(message: string) {
+  if (/rate limit|too many requests/i.test(message)) {
+    return "Too many verification emails were requested. Wait a few minutes, then try again.";
+  }
+  if (/error sending|smtp|email provider/i.test(message)) {
+    return "Supabase could not deliver the verification email. Check the project's SMTP settings and email provider logs.";
+  }
+  return "Could not send the verification email. Please try again.";
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -126,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             : undefined,
       },
     });
-    return error ? { error: signInErrorMessage(error.message) } : {};
+    return error ? { error: verificationEmailErrorMessage(error.message) } : {};
   };
 
   const signOut = async () => {
