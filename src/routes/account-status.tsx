@@ -9,6 +9,13 @@ export const Route = createFileRoute("/account-status")({
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/auth/signin" });
     if (!data.user.email_confirmed_at) throw redirect({ to: "/auth/check-email" });
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", data.user.id);
+    if ((roles ?? []).some((role) => role.role === "admin")) {
+      throw redirect({ to: "/admin" });
+    }
   },
   component: AccountStatus,
 });
