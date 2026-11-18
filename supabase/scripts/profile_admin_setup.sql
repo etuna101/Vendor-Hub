@@ -226,8 +226,9 @@ RETURNS TABLE(user_id uuid, full_name text, business_name text, phone text, emai
 LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '' AS $$
 BEGIN
   IF NOT public.is_admin() THEN RAISE EXCEPTION 'not authorized' USING ERRCODE = '42501'; END IF;
-  RETURN QUERY SELECT p.id,p.full_name,p.business_name,p.phone,u.email,(u.email_confirmed_at IS NOT NULL),
-    p.approval_status::text,p.rejection_reason,p.created_at
+  RETURN QUERY SELECT p.id::uuid,p.full_name::text,p.business_name::text,p.phone::text,
+    u.email::text,(u.email_confirmed_at IS NOT NULL), p.approval_status::text,
+    p.rejection_reason::text,p.created_at::timestamptz
     FROM public.profiles p JOIN auth.users u ON u.id=p.id
     WHERE NOT EXISTS (SELECT 1 FROM public.user_roles r WHERE r.user_id=p.id AND r.role::text='admin')
     ORDER BY p.created_at DESC;
