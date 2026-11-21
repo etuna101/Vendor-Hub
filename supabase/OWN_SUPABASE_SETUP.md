@@ -48,6 +48,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=<your anon / publishable key>
 VITE_SUPABASE_PROJECT_ID=<your-ref>
 SUPABASE_URL=https://<your-ref>.supabase.co
 SUPABASE_PUBLISHABLE_KEY=<your anon / publishable key>
+GEMINI_API_KEY=<server-side Google AI Studio API key>
 ```
 
 - **On Vercel / your own hosting:** set those five variables in the project's
@@ -57,6 +58,10 @@ SUPABASE_PUBLISHABLE_KEY=<your anon / publishable key>
   edited from chat. Switch the backend from project **Settings → Cloud/Supabase
   connection** (connect your own Supabase project). After that, the same code
   runs against your database.
+
+The assistant calls the Gemini API directly from the server using `GEMINI_API_KEY`.
+Add that secret to your hosting provider's server environment variables before
+deploying. Never prefix it with `VITE_` or expose it to the browser.
 
 Only ever use the **anon / publishable** key in the app. Never put the service role
 key or database password in `.env`, client code, or chat.

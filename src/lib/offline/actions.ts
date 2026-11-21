@@ -6,8 +6,8 @@ export function isOffline() {
 }
 
 async function currentUserId(): Promise<string> {
-  const { data } = await supabase.auth.getUser();
-  const id = data.user?.id;
+  const { data } = await supabase.auth.getSession();
+  const id = data.session?.user.id;
   if (!id) throw new Error("Not signed in");
   return id;
 }

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useRef, useState } from "react";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
 import { aiChat, getChatHistory } from "@/lib/ai.functions";
 import { Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -13,6 +14,7 @@ type Msg = { role: "user" | "assistant"; content: string };
 
 function Assistant() {
   const { t, lang } = useI18n();
+  const { user } = useAuth();
   const chat = useServerFn(aiChat);
   const history = useServerFn(getChatHistory);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -20,8 +22,9 @@ function Assistant() {
   const [busy, setBusy] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const { data: historyMessages = [], isLoading: historyLoading } = useQuery({
-    queryKey: ["assistant-history"],
+  const { data: historyMessages = [], isLoading: historyLoading, error: historyError, refetch: retryHistory } = useQuery({
+    queryKey: ["assistant-history", user?.id],
+    enabled: Boolean(user?.id),
     queryFn: async () => (await history()).messages.flatMap((message: { query: string; response: string }) => [
       { role: "user" as const, content: message.query },
       { role: "assistant" as const, content: message.response },
@@ -50,9 +53,19 @@ function Assistant() {
       setMessages((m) => [...m, { role: "assistant", content: res.answer }]);
     } catch (e: any) {
       const msg = String(e?.message ?? "");
-      if (msg.includes("RATE_LIMIT")) toast.error(lang === "sw" ? "Umeuliza mara nyingi mno. Jaribu tena baadaye." : "Too many requests — try again in a moment.");
-      else if (msg.includes("CREDITS")) toast.error(lang === "sw" ? "Msaidizi hakuna salio. Wasiliana na msimamizi." : "The assistant is out of credits — please contact support.");
-      else toast.error(lang === "sw" ? "Msaidizi hakuweza kujibu. Jaribu tena." : "The assistant couldn't answer. Please try again.");
+      const failure = msg.match(/AI_SERVICE_ERROR:([A-Z_]+):([\w-]+)/);
+      const code = failure?.[1];
+      const requestId = failure?.[2];
+      const reference = requestId ? ` (${code}; ref ${requestId})` : "";
+      if (code === "RATE_LIMIT") toast.error((lang === "sw" ? "Gemini ina maombi mengi kwa sasa. Jaribu tena baadaye." : "Gemini is receiving too many requests. Try again shortly.") + reference);
+      else if (code === "CONFIG") toast.error((lang === "sw" ? "GEMINI_API_KEY haikupatikana kwenye mazingira ya seva. Anzisha seva upya." : "GEMINI_API_KEY was not found in the server environment. Restart the dev server.") + reference);
+      else if (code === "AUTH") toast.error((lang === "sw" ? "Gemini haikukubali API key. Hakikisha ni key mpya na sahihi." : "Gemini rejected the API key. Check that the replacement key is valid.") + reference);
+      else if (code === "PERMISSION") toast.error((lang === "sw" ? "Google imezuia mradi au key hii. Angalia ruhusa za Gemini API, uthibitishaji na vizuizi vya key." : "Google denied access for this project or key. Check Gemini API access, project verification, and key restrictions.") + reference);
+      else if (code === "BILLING") toast.error((lang === "sw" ? "Mradi unahitaji mipangilio ya malipo ili kutumia Gemini API." : "This project needs billing configured to use the Gemini API.") + reference);
+      else if (code === "MODEL") toast.error((lang === "sw" ? "Gemini haikupata modeli iliyowekwa." : "Gemini could not find the configured model.") + reference);
+      else if (code === "API") toast.error((lang === "sw" ? "Gemini ilikataa muundo wa ombi." : "Gemini rejected the request format.") + reference);
+      else if (code === "QUOTA") toast.error((lang === "sw" ? "Kiwango cha matumizi ya Gemini kimefika. Angalia matumizi katika Google AI Studio." : "The Gemini API quota is exhausted. Check Google AI Studio usage.") + reference);
+      else toast.error((lang === "sw" ? "Msaidizi hakuweza kujibu. Jaribu tena." : "The assistant couldn't answer. Please try again.") + reference);
     } finally {
       setBusy(false);
     }
@@ -71,6 +84,10 @@ function Assistant() {
       </div>
 
       <div ref={scrollRef} className="flex-1 overflow-y-auto pr-1">
+        {historyError && <div role="alert" className="mb-3 rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+          <p>{lang === "sw" ? "Historia ya mazungumzo haikupakiwa." : "Chat history could not be loaded."}</p>
+          <button type="button" className="mt-1 font-semibold underline" onClick={() => void retryHistory()}>{lang === "sw" ? "Jaribu tena" : "Try again"}</button>
+        </div>}
         {historyLoading ? <div className="space-y-3" aria-label={lang === "sw" ? "Inapakia" : "Loading"}><div className="h-16 w-3/4 animate-pulse rounded-2xl bg-primary/10" /><div className="ml-auto h-16 w-2/3 animate-pulse rounded-2xl bg-primary/10" /></div> : allMessages.length === 0 ? (
           <div className="card-soft p-5">
             <p className="text-sm text-muted-foreground">

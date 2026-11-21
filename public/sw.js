@@ -42,7 +42,22 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
-        .catch(() => new Response("Network unavailable", { status: 503, statusText: "Service Unavailable" })),
+        .then((response) => {
+          if (isCacheable(response)) cacheResponse(request, response);
+          return response;
+        })
+        .catch(async () => {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          // A first visit to a deep link may not have its exact HTML cached.
+          // Serve the cached app shell so the client router can render the route.
+          const shell = await caches.match("/app/dashboard") ?? await caches.match("/");
+          return shell ?? new Response("Open VendorHub online once to enable offline access.", {
+            status: 503,
+            statusText: "Offline app shell not cached",
+            headers: { "Content-Type": "text/plain; charset=utf-8" },
+          });
+        }),
     );
     return;
   }

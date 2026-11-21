@@ -13,10 +13,19 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/app")({
   ssr: false,
   beforeLoad: async () => {
-    const { data } = await supabase.auth.getUser();
-    const user = data.user;
+    // Offline, read the persisted session locally. Online, keep the existing
+    // server-verified identity check.
+    const offline = typeof navigator !== "undefined" && !navigator.onLine;
+    const { data } = offline
+      ? await supabase.auth.getSession()
+      : await supabase.auth.getUser();
+    const user = offline ? data.session?.user : data.user;
     if (!user) throw redirect({ to: "/auth/signin" });
     if (!user.email_confirmed_at) throw redirect({ to: "/auth/check-email" });
+    // Role and approval checks remain authoritative whenever Supabase is
+    // reachable. Offline, use the already persisted session to open the app;
+    // writes still queue locally and sync when connectivity returns.
+    if (offline) return;
     const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
     if ((roles ?? []).some((role) => role.role === "admin")) return;
     const { data: profile, error: profileError } = await supabase
