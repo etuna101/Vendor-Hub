@@ -8,6 +8,7 @@ import { QuickFilterBar, getPeriodRange, type PeriodKey } from "@/components/Qui
 import { formatKsh } from "@/lib/format";
 import { getDashboardInsight } from "@/lib/ai.functions";
 import { SyncReviewCard } from "@/components/SyncReviewCard";
+import { offlineList } from "@/lib/offline/actions";
 
 import { AlertTriangle, Coins, HandCoins, ShoppingCart, Wallet, Receipt, BarChart3, Users, Sparkles, BellRing } from "lucide-react";
 
@@ -29,21 +30,37 @@ function Dashboard() {
 
   const { data, isLoading: dashboardLoading } = useQuery({
     queryKey: ["dashboard", period],
+    networkMode: "always",
     queryFn: async () => {
-      const [salesRes, expensesRes, productsRes, creditRes] = await Promise.all([
-        supabase.from("sales").select("total, date").gte("date", from.toISOString()).lte("date", to.toISOString()),
-        supabase.from("expenses").select("amount").gte("date", from.toISOString()).lte("date", to.toISOString()),
-        supabase.from("products").select("current_stock, low_stock_threshold").eq("is_active", true),
-        supabase.from("sales").select("total, customer_id, due_date").eq("is_credit", true).eq("credit_paid", false),
+      const [salesRows, expenseRows, productRows, creditRows] = await Promise.all([
+        offlineList<any>("sales", async () => {
+          const { data, error } = await supabase.from("sales").select("id, user_id, total, date").gte("date", from.toISOString()).lte("date", to.toISOString());
+          if (error) throw error;
+          return data ?? [];
+        }, (row) => new Date(row.date).getTime() >= from.getTime() && new Date(row.date).getTime() <= to.getTime()),
+        offlineList<any>("expenses", async () => {
+          const { data, error } = await supabase.from("expenses").select("id, user_id, amount, date").gte("date", from.toISOString()).lte("date", to.toISOString());
+          if (error) throw error;
+          return data ?? [];
+        }, (row) => new Date(row.date).getTime() >= from.getTime() && new Date(row.date).getTime() <= to.getTime()),
+        offlineList<any>("products", async () => {
+          const { data, error } = await supabase.from("products").select("*").eq("is_active", true);
+          if (error) throw error;
+          return data ?? [];
+        }, (row) => row.is_active !== false),
+        offlineList<any>("sales", async () => {
+          const { data, error } = await supabase.from("sales").select("id, user_id, total, customer_id, due_date, is_credit, credit_paid").eq("is_credit", true).eq("credit_paid", false);
+          if (error) throw error;
+          return data ?? [];
+        }, (row) => row.is_credit && !row.credit_paid),
       ]);
-      const salesRows = salesRes.data ?? [];
       const sales = salesRows.reduce((s, r) => s + Number(r.total), 0);
-      const expenses = (expensesRes.data ?? []).reduce((s, r) => s + Number(r.amount), 0);
-      const lowStock = (productsRes.data ?? []).filter((p) => Number(p.current_stock) <= Number(p.low_stock_threshold)).length;
-      const owed = (creditRes.data ?? []).reduce((s, r) => s + Number(r.total), 0);
-      const customersOwing = new Set((creditRes.data ?? []).filter((r) => r.customer_id).map((r) => r.customer_id)).size;
+      const expenses = expenseRows.reduce((s, r) => s + Number(r.amount), 0);
+      const lowStock = productRows.filter((p) => Number(p.current_stock) <= Number(p.low_stock_threshold)).length;
+      const owed = creditRows.reduce((s, r) => s + Number(r.total), 0);
+      const customersOwing = new Set(creditRows.filter((r) => r.customer_id).map((r) => r.customer_id)).size;
       const today = new Date(); today.setHours(0, 0, 0, 0);
-      const overdueRows = (creditRes.data ?? []).filter((r) => r.due_date && new Date(r.due_date as string) < today);
+      const overdueRows = creditRows.filter((r) => r.due_date && new Date(r.due_date as string) < today);
       const overdueCount = overdueRows.length;
       const overdueOwed = overdueRows.reduce((s, r) => s + Number(r.total), 0);
       return { sales, expenses, profit: sales - expenses, lowStock, owed, customersOwing, overdueCount, overdueOwed, salesRows };

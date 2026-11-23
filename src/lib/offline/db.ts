@@ -40,6 +40,7 @@ export interface LocalSale {
   customer_id: string | null;
   customer_name?: string | null;
   customer_phone?: string | null;
+  customers?: { name: string; phone?: string | null } | null;
   is_credit: boolean;
   credit_paid: boolean;
   date: string;
@@ -72,6 +73,7 @@ class VendorHubDB extends Dexie {
   sales!: Table<LocalSale, string>;
   expenses!: Table<LocalExpense, string>;
   credit_payments!: Table<LocalCreditPayment, string>;
+  stock_history!: Table<any, string>;
   queue!: Table<QueueItem, number>;
 
   constructor() {
@@ -81,6 +83,14 @@ class VendorHubDB extends Dexie {
       sales: "id, user_id, date, product_id, is_credit",
       expenses: "id, user_id, date, category",
       credit_payments: "id, user_id, sale_id, date",
+      queue: "++id, localId, kind, status, createdAt",
+    });
+    this.version(2).stores({
+      products: "id, user_id, name, is_active",
+      sales: "id, user_id, date, product_id, is_credit",
+      expenses: "id, user_id, date, category",
+      credit_payments: "id, user_id, sale_id, date",
+      stock_history: "id, user_id, date, product_id, change_type",
       queue: "++id, localId, kind, status, createdAt",
     });
   }
@@ -109,14 +119,16 @@ export async function enqueue(kind: QueueKind, payload: any) {
   return localId;
 }
 
-export async function pendingCount() {
+export async function pendingCount(userId?: string) {
   const db = getDB();
   if (!db) return 0;
-  return db.queue.where("status").anyOf("pending", "syncing").count();
+  const queue = db.queue.where("status").anyOf("pending", "syncing");
+  return userId ? queue.filter((item) => item.payload?.user_id === userId).count() : queue.count();
 }
 
-export async function reviewItems() {
+export async function reviewItems(userId?: string) {
   const db = getDB();
   if (!db) return [];
-  return db.queue.where("status").equals("needs_review").toArray();
+  const queue = db.queue.where("status").equals("needs_review");
+  return userId ? queue.filter((item) => item.payload?.user_id === userId).toArray() : queue.toArray();
 }

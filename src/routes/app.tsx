@@ -8,6 +8,7 @@ import { LogOut } from "lucide-react";
 import { DueDebtNotifications } from "@/components/DueDebtNotifications";
 import { OfflineProvider } from "@/lib/offline/OfflineProvider";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/app")({
@@ -43,12 +44,14 @@ export const Route = createFileRoute("/app")({
 function AppShell() {
   const { signOut } = useAuth();
   const { t } = useI18n();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [signingOut, setSigningOut] = useState(false);
 
   const handleSignOut = async () => {
     setSigningOut(true);
     try {
+      queryClient.clear();
       await signOut();
       await navigate({ to: "/auth/signin", replace: true });
     } catch {

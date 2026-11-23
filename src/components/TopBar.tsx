@@ -12,7 +12,7 @@ export function TopBar({ right }: { right?: React.ReactNode }) {
       <div className="flex min-w-0 items-center gap-2">
         <OfflineBadge />
         {right}
-        <Link to="/app/profile" aria-label={lang === "sw" ? "Wasifu wangu" : "My profile"} title={lang === "sw" ? "Wasifu wangu" : "My profile"} className="flex size-10 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground">
+        <Link to="/app/profile" aria-label={lang === "sw" ? "Wasifu wangu" : "My profile"} title={lang === "sw" ? "Wasifu wangu" : "My profile"} className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
           <CircleUserRound size={20} />
         </Link>
         <div className="flex rounded-full border border-border bg-card p-0.5 text-sm font-semibold">

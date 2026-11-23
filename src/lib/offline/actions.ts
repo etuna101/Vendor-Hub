@@ -17,27 +17,45 @@ async function currentUserId(): Promise<string> {
  * offline reads come straight from IndexedDB (pending rows included).
  */
 export async function offlineList<T>(
-  table: "products" | "sales" | "expenses" | "credit_payments",
+  table: "products" | "sales" | "expenses" | "credit_payments" | "stock_history",
   fetcher: () => Promise<T[]>,
   filter?: (row: any) => boolean,
 ): Promise<T[]> {
   const db = getDB();
-  if (!isOffline()) {
-    try {
-      const rows = await fetcher();
-      if (db) {
-        const pending = await (db as any)[table].filter((r: any) => r._pending).toArray();
-        await (db as any)[table].bulkPut(rows as any[]);
-        return [...pending, ...(rows as any[])].filter((r) => (filter ? filter(r) : true)) as T[];
-      }
-      return rows;
-    } catch (err) {
-      if (!db) throw err;
+  const userId = await currentUserId();
+  if (!db) return isOffline() ? [] : fetcher();
+
+  const cachedRows = async () => (await (db as any)[table].toArray())
+    .filter((row: any) => row.user_id === userId && (!filter || filter(row))) as T[];
+  const pendingRows = async () => (await (db as any)[table].filter((row: any) => row._pending && row.user_id === userId).toArray()) as T[];
+  const cached = await cachedRows();
+  if (isOffline()) return cached;
+
+  let returnedFallback = false;
+  const remote = fetcher().then(async (rows) => {
+    const ownedRows = rows.filter((row: any) => row.user_id === userId);
+    // Some screens fetch only the columns they need. Merge those projections
+    // into the mirror so they don't erase richer rows cached by other screens.
+    const cacheableRows = ownedRows.filter((row: any) => row.id);
+    for (const row of cacheableRows) {
+      const previous = await (db as any)[table].get(row.id);
+      await (db as any)[table].put({ ...previous, ...row });
     }
+    if (returnedFallback && cached.length === 0 && typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("vendorhub:offline-cache-updated", { detail: { table } }));
+    }
+    return ownedRows;
+  });
+  // If the connection is slow, allow navigation to use the local mirror while
+  // the request continues and refreshes IndexedDB for the next visit.
+  remote.catch(() => {});
+  const timeout = new Promise<null>((resolve) => window.setTimeout(() => { returnedFallback = true; resolve(null); }, cached.length ? 700 : 1800));
+  const result = await Promise.race([remote.then((rows) => rows), timeout]);
+  if (result) {
+    const pending = await pendingRows();
+    return [...pending, ...result].filter((row: any) => !filter || filter(row)) as T[];
   }
-  if (!db) return [];
-  const rows = await (db as any)[table].toArray();
-  return (rows as any[]).filter((r) => (filter ? filter(r) : true)) as T[];
+  return cached;
 }
 
 export async function recordSaleOfflineFirst(input: {
@@ -87,8 +105,9 @@ export async function recordSaleOfflineFirst(input: {
   }
 
   // Offline: write locally + queue, and reflect it in the UI right away.
+  if (!db) throw new Error("Offline storage is unavailable in this browser. Reconnect before recording the sale.");
   const localRowId = newLocalId();
-  if (db) {
+  {
     await db.sales.put({
       id: localRowId,
       user_id: userId,
@@ -100,6 +119,7 @@ export async function recordSaleOfflineFirst(input: {
       customer_id: input.customer_id,
       customer_name: input.new_customer_name ?? null,
       customer_phone: input.customer_phone ?? null,
+      customers: input.new_customer_name ? { name: input.new_customer_name, phone: input.customer_phone ?? null } : null,
       is_credit: input.is_credit,
       credit_paid: false,
       date: new Date().toISOString(),
@@ -130,8 +150,9 @@ export async function recordExpenseOfflineFirst(input: {
     return { queued: false };
   }
   const db = getDB();
+  if (!db) throw new Error("Offline storage is unavailable in this browser. Reconnect before recording the expense.");
   const localRowId = newLocalId();
-  if (db) {
+  {
     await db.expenses.put({
       id: localRowId,
       user_id: userId,
@@ -159,13 +180,15 @@ export async function recordCreditPaymentOfflineFirst(input: {
       .insert({ sale_id: input.sale_id, amount: input.amount, note: input.note ?? null, user_id: userId } as any);
     if (error) throw new Error(error.message);
     if (input.mark_paid) {
-      await supabase.from("sales").update({ credit_paid: true } as any).eq("id", input.sale_id);
+      const { error: paidError } = await supabase.from("sales").update({ credit_paid: true } as any).eq("id", input.sale_id);
+      if (paidError) console.error("Credit payment saved, but marking the sale paid failed:", paidError);
     }
     return { queued: false };
   }
   const db = getDB();
+  if (!db) throw new Error("Offline storage is unavailable in this browser. Reconnect before recording the payment.");
   const localRowId = newLocalId();
-  if (db) {
+  {
     await db.credit_payments.put({
       id: localRowId,
       user_id: userId,
@@ -175,6 +198,10 @@ export async function recordCreditPaymentOfflineFirst(input: {
       date: new Date().toISOString(),
       _pending: true,
     });
+    if (input.mark_paid) {
+      const sale = await db.sales.get(input.sale_id);
+      if (sale) await db.sales.put({ ...sale, credit_paid: true });
+    }
   }
   await enqueue("credit_payment", { ...input, user_id: userId, local_row_id: localRowId });
   return { queued: true };
@@ -185,7 +212,7 @@ export async function recordRestockOfflineFirst(input: {
   quantity: number;
   note?: string;
 }) {
-  await currentUserId();
+  const userId = await currentUserId();
   if (!isOffline()) {
     const { error } = await supabase.rpc("record_restock" as any, {
       _product_id: input.product_id,
@@ -196,13 +223,14 @@ export async function recordRestockOfflineFirst(input: {
     return { queued: false };
   }
   const db = getDB();
-  if (db) {
+  if (!db) throw new Error("Offline storage is unavailable in this browser. Reconnect before recording the restock.");
+  {
     const product = await db.products.get(input.product_id);
     if (product) {
       await db.products.put({ ...product, current_stock: Number(product.current_stock) + input.quantity });
     }
   }
-  await enqueue("restock", input);
+  await enqueue("restock", { ...input, user_id: userId });
   return { queued: true };
 }
 
@@ -213,7 +241,7 @@ export async function recordStockLossOfflineFirst(input: {
   reason: string;
   note?: string;
 }) {
-  await currentUserId();
+  const userId = await currentUserId();
   if (!isOffline()) {
     const { error } = await supabase.rpc("record_stock_loss" as any, {
       _product_id: input.product_id,
@@ -225,12 +253,36 @@ export async function recordStockLossOfflineFirst(input: {
     return { queued: false };
   }
   const db = getDB();
-  if (db) {
+  if (!db) throw new Error("Offline storage is unavailable in this browser. Reconnect before recording the stock loss.");
+  {
     const product = await db.products.get(input.product_id);
     if (product) {
       await db.products.put({ ...product, current_stock: Number(product.current_stock) - input.quantity });
     }
   }
-  await enqueue("loss", input);
+  await enqueue("loss", { ...input, user_id: userId });
+  return { queued: true };
+}
+
+export async function recordProductOfflineFirst(input: {
+  name: string;
+  unit: string;
+  current_stock: number;
+  low_stock_threshold: number;
+  cost_price: number;
+  selling_price: number;
+}) {
+  const userId = await currentUserId();
+  const db = getDB();
+  if (isOffline() && !db) throw new Error("Offline storage is unavailable in this browser. Reconnect before adding a product.");
+  const row = { ...input, id: newLocalId(), user_id: userId, is_active: true, _pending: true };
+  if (!isOffline()) {
+    const { data, error } = await supabase.from("products").insert({ ...input, user_id: userId }).select("*").single();
+    if (error) throw new Error(error.message);
+    if (db) await db.products.put(data as any);
+    return { queued: false };
+  }
+  await db!.products.put(row as any);
+  await enqueue("product", { user_id: userId, row });
   return { queued: true };
 }

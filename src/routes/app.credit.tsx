@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { recordCreditPaymentOfflineFirst } from "@/lib/offline/actions";
+import { offlineList, recordCreditPaymentOfflineFirst } from "@/lib/offline/actions";
+import { useOffline } from "@/lib/offline/OfflineProvider";
 import { getEdgeFunctionErrorMessage } from "@/lib/edge-function-error";
 
 import { useI18n } from "@/lib/i18n";
@@ -61,6 +62,7 @@ function dueLabel(row: CreditRow, lang: string) {
 function CreditScreen() {
   const { t, lang } = useI18n();
   const qc = useQueryClient();
+  const { refresh: refreshOffline } = useOffline();
   const [payingFor, setPayingFor] = useState<CreditRow | null>(null);
   const [mpesaFor, setMpesaFor] = useState<CreditRow | null>(null);
   const [remindFor, setRemindFor] = useState<CreditRow | null>(null);
@@ -70,24 +72,22 @@ function CreditScreen() {
 
   const { data: rows = [], isLoading } = useQuery<CreditRow[]>({
     queryKey: ["credit-sales-all"],
+    networkMode: "always",
     queryFn: async () => {
-      const { data: sales, error } = await supabase
-        .from("sales")
-        .select(
-          "id, product_name_snapshot, total, date, due_date, credit_paid, customer_id, customers(name, phone)",
-        )
-        .eq("is_credit", true)
-        .order("date", { ascending: false });
-      if (error) throw error;
-      const ids = (sales ?? []).map((s: any) => s.id);
-      let payments: any[] = [];
-      if (ids.length) {
-        const { data: pays } = await supabase
-          .from("credit_payments")
-          .select("sale_id, amount")
-          .in("sale_id", ids);
-        payments = pays ?? [];
-      }
+      const [sales, payments] = await Promise.all([
+        offlineList<any>("sales", async () => {
+          const { data, error } = await supabase.from("sales")
+            .select("user_id, id, product_name_snapshot, total, date, due_date, credit_paid, customer_id, is_credit, customers(name, phone)")
+            .eq("is_credit", true).order("date", { ascending: false });
+          if (error) throw error;
+          return data ?? [];
+        }, (sale) => sale.is_credit),
+        offlineList<any>("credit_payments", async () => {
+          const { data, error } = await supabase.from("credit_payments").select("id, user_id, sale_id, amount, date");
+          if (error) throw error;
+          return data ?? [];
+        }),
+      ]);
       const paidBySale = new Map<string, number>();
       for (const p of payments)
         paidBySale.set(p.sale_id, (paidBySale.get(p.sale_id) ?? 0) + Number(p.amount));
@@ -103,7 +103,14 @@ function CreditScreen() {
           daysDiff = Math.round((due.getTime() - today.getTime()) / 86400000);
         }
         const overdue = !s.credit_paid && daysDiff !== null && daysDiff < 0 && balance > 0;
-        return { ...s, paid, balance, overdue, daysDiff } as CreditRow;
+        return {
+          ...s,
+          customers: s.customers ?? (s.customer_name ? { name: s.customer_name, phone: s.customer_phone ?? null } : null),
+          paid,
+          balance,
+          overdue,
+          daysDiff,
+        } as CreditRow;
       });
     },
   });
@@ -128,22 +135,18 @@ function CreditScreen() {
   const visibleRows = visible.slice(0, visibleCount);
 
   const markPaid = async (r: CreditRow) => {
-    if (r.balance > 0) {
-      const { data: u } = await supabase.auth.getUser();
-      const { error: pe } = await supabase.from("credit_payments").insert({
-        user_id: u.user!.id,
-        sale_id: r.id,
-        amount: r.balance,
-      } as any);
-      if (pe) return toast.error(pe.message);
+    try {
+      const result = await recordCreditPaymentOfflineFirst({ sale_id: r.id, amount: r.balance, mark_paid: true });
+      await refreshOffline();
+      toast.success(result.queued
+        ? (lang === "en" ? "Saved offline â€” will sync" : "Imehifadhiwa nje ya mtandao â€” itasawazishwa")
+        : (lang === "en" ? "Marked paid" : "Imelipwa"));
+      void qc.invalidateQueries({ queryKey: ["credit-sales-all"] });
+      void qc.invalidateQueries({ queryKey: ["dashboard"] });
+      void qc.invalidateQueries({ queryKey: ["sales"] });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not record payment");
     }
-    const { error } = await supabase
-      .from("sales")
-      .update({ credit_paid: true } as any)
-      .eq("id", r.id);
-    if (error) return toast.error(error.message);
-    toast.success(lang === "en" ? "Marked paid" : "Imelipwa");
-    qc.invalidateQueries();
   };
 
   return (
@@ -337,7 +340,9 @@ function CreditScreen() {
           row={payingFor}
           onClose={() => setPayingFor(null)}
           onSaved={() => {
-            qc.invalidateQueries();
+            void qc.invalidateQueries({ queryKey: ["credit-sales-all"] });
+            void qc.invalidateQueries({ queryKey: ["dashboard"] });
+            void qc.invalidateQueries({ queryKey: ["sales"] });
             setPayingFor(null);
           }}
         />
@@ -346,7 +351,10 @@ function CreditScreen() {
         <MpesaPaymentDialog
           row={mpesaFor}
           onClose={() => setMpesaFor(null)}
-          onUpdated={() => qc.invalidateQueries()}
+          onUpdated={() => {
+            void qc.invalidateQueries({ queryKey: ["credit-sales-all"] });
+            void qc.invalidateQueries({ queryKey: ["dashboard"] });
+          }}
         />
       )}
       {remindFor && <ReminderDialog row={remindFor} onClose={() => setRemindFor(null)} />}
@@ -594,6 +602,7 @@ function PaymentDialog({
   onSaved: () => void;
 }) {
   const { t, lang } = useI18n();
+  const { refresh: refreshOffline } = useOffline();
   const [amount, setAmount] = useState<number>(row.balance);
   const [saving, setSaving] = useState(false);
 
@@ -609,6 +618,7 @@ function PaymentDialog({
         amount: capped,
         mark_paid: capped >= row.balance,
       });
+      await refreshOffline();
       toast.success(
         res.queued
           ? lang === "en"

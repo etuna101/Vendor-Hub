@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useI18n } from "@/lib/i18n";
 import { QuickFilterBar, getPeriodRange, type PeriodKey } from "@/components/QuickFilterBar";
 import { formatKsh } from "@/lib/format";
+import { offlineList } from "@/lib/offline/actions";
 import { Download, FileText } from "lucide-react";
 import jsPDF from "jspdf";
 
@@ -19,24 +20,38 @@ function Reports() {
 
   const { data, isLoading } = useQuery({
     queryKey: ["reports", period],
+    networkMode: "always",
     queryFn: async () => {
-      const [salesRes, expRes, prodRes, lossRes] = await Promise.all([
-        supabase.from("sales").select("date, product_name_snapshot, quantity, unit_price, total, is_credit").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date"),
-        supabase.from("expenses").select("date, category, amount, description").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date"),
-        supabase.from("products").select("name, current_stock, low_stock_threshold, cost_price, unit").eq("is_active", true),
-        supabase.from("stock_history").select("date, quantity, value, reason, note, products(name, unit)").eq("change_type", "loss").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date"),
+      const [sales, expenses, products, losses] = await Promise.all([
+        offlineList<any>("sales", async () => {
+          const { data, error } = await supabase.from("sales").select("id, user_id, date, product_name_snapshot, quantity, unit_price, total, is_credit").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date");
+          if (error) throw error;
+          return data ?? [];
+        }, (row) => new Date(row.date).getTime() >= from.getTime() && new Date(row.date).getTime() <= to.getTime()),
+        offlineList<any>("expenses", async () => {
+          const { data, error } = await supabase.from("expenses").select("id, user_id, date, category, amount, description").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date");
+          if (error) throw error;
+          return data ?? [];
+        }, (row) => new Date(row.date).getTime() >= from.getTime() && new Date(row.date).getTime() <= to.getTime()),
+        offlineList<any>("products", async () => {
+          const { data, error } = await supabase.from("products").select("*").eq("is_active", true);
+          if (error) throw error;
+          return data ?? [];
+        }, (row) => row.is_active !== false),
+        offlineList<any>("stock_history", async () => {
+          const { data, error } = await supabase.from("stock_history").select("user_id, id, date, quantity, value, reason, note, change_type, products(name, unit)").eq("change_type", "loss").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date");
+          if (error) throw error;
+          return data ?? [];
+        }, (row) => row.change_type === "loss" && new Date(row.date).getTime() >= from.getTime() && new Date(row.date).getTime() <= to.getTime()),
       ]);
-      const sales = salesRes.data ?? [];
-      const expenses = expRes.data ?? [];
-      const products = prodRes.data ?? [];
-      const losses = (lossRes.data ?? []) as any[];
+      const lossRows = losses as any[];
       const salesTotal = sales.reduce((s, r) => s + Number(r.total), 0);
       const expenseTotal = expenses.reduce((s, r) => s + Number(r.amount), 0);
       const stockValue = products.reduce((s, p) => s + Number(p.current_stock) * Number(p.cost_price), 0);
       const lowCount = products.filter((p) => Number(p.current_stock) <= Number(p.low_stock_threshold)).length;
-      const wasteTotal = losses.reduce((s, r) => s + Math.abs(Number(r.value ?? 0)), 0);
+      const wasteTotal = lossRows.reduce((s, r) => s + Math.abs(Number(r.value ?? 0)), 0);
       const wastePct = salesTotal > 0 ? (wasteTotal / salesTotal) * 100 : 0;
-      return { sales, expenses, products, losses, salesTotal, expenseTotal, stockValue, lowCount, wasteTotal, wastePct, profit: salesTotal - expenseTotal - wasteTotal };
+      return { sales, expenses, products, losses: lossRows, salesTotal, expenseTotal, stockValue, lowCount, wasteTotal, wastePct, profit: salesTotal - expenseTotal - wasteTotal };
     },
   });
 

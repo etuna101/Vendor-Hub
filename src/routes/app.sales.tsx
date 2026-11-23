@@ -26,6 +26,7 @@ function SalesScreen() {
 
   const { data: sales = [], isLoading } = useQuery({
     queryKey: ["sales", period],
+    networkMode: "always",
     queryFn: () =>
       offlineList<any>("sales", async () => {
         const { data, error } = await supabase.from("sales").select("*, customers(name)").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date", { ascending: false });
@@ -85,7 +86,13 @@ function SalesScreen() {
         <NewSaleDialog
           onClose={() => setOpen(false)}
           onSaved={(payment) => {
-            qc.invalidateQueries();
+            void qc.invalidateQueries({ queryKey: ["sales"] });
+            void qc.invalidateQueries({ queryKey: ["sales-14d"] });
+            void qc.invalidateQueries({ queryKey: ["products"] });
+            void qc.invalidateQueries({ queryKey: ["products-active"] });
+            void qc.invalidateQueries({ queryKey: ["dashboard"] });
+            void qc.invalidateQueries({ queryKey: ["credit-sales-all"] });
+            void qc.invalidateQueries({ queryKey: ["reports"] });
             setOpen(false);
             if (payment) setAskPay(payment);
           }}
@@ -97,7 +104,11 @@ function SalesScreen() {
           defaultAmount={askPay.amount}
           defaultPhone={askPay.phone ?? ""}
           onClose={() => setAskPay(null)}
-          onPaid={() => qc.invalidateQueries()}
+          onPaid={() => {
+            void qc.invalidateQueries({ queryKey: ["sales"] });
+            void qc.invalidateQueries({ queryKey: ["dashboard"] });
+            void qc.invalidateQueries({ queryKey: ["credit-sales-all"] });
+          }}
         />
       )}
     </div>
@@ -124,6 +135,7 @@ function NewSaleDialog({
 
   const { data: products = [] } = useQuery({
     queryKey: ["products-active"],
+    networkMode: "always",
     queryFn: () =>
       offlineList<any>("products", async () => {
         const { data } = await supabase.from("products").select("*").eq("is_active", true).order("name");

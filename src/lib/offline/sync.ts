@@ -88,16 +88,20 @@ async function replay(item: QueueItem) {
     } as any);
     if (error) throw error;
     if (p.mark_paid) {
-      await supabase.from("sales").update({ credit_paid: true } as any).eq("id", p.sale_id);
+      const { error: paidError } = await supabase.from("sales").update({ credit_paid: true } as any).eq("id", p.sale_id);
+      // The payment insert already committed. Retrying this queue item could
+      // create a duplicate payment, so report the follow-up failure separately.
+      if (paidError) console.error("Offline credit payment synced, but marking the sale paid failed:", paidError);
     }
     await db.credit_payments.delete(p.local_row_id);
     return;
   }
 
   if (item.kind === "product") {
-    const { error } = await supabase.from("products").insert(p.row as any);
+    const { _pending: _pendingLocalFlag, ...productRow } = p.row;
+    const { data, error } = await supabase.from("products").insert(productRow as any).select("*").single();
     if (error) throw error;
-    await db.products.delete(p.local_row_id);
+    await db.products.put(data as any);
     return;
   }
 }
@@ -114,7 +118,23 @@ export async function processQueue(): Promise<SyncResult> {
   let synced = 0;
   let needsReview = 0;
   try {
-    const items = await db.queue.where("status").equals("pending").sortBy("createdAt");
+    const { data: sessionData } = await supabase.auth.getSession();
+    const userId = sessionData.session?.user.id;
+    if (!userId) return { synced, needsReview };
+    const legacyRows = await db.queue.toArray();
+    for (const item of legacyRows) {
+      if (item.payload?.user_id || !["restock", "loss"].includes(item.kind)) continue;
+      const product = await db.products.get(item.payload?.product_id);
+      if (product?.user_id === userId) {
+        item.payload.user_id = userId;
+        await db.queue.update(item.id!, { payload: item.payload });
+      }
+    }
+    const staleSyncing = await db.queue.where("status").equals("syncing")
+      .filter((item) => item.payload?.user_id === userId).toArray();
+    for (const item of staleSyncing) await db.queue.update(item.id!, { status: "pending" });
+    const items = (await db.queue.where("status").equals("pending").sortBy("createdAt"))
+      .filter((item) => item.payload?.user_id === userId);
     for (const item of items) {
       await db.queue.update(item.id!, { status: "syncing" });
       try {
@@ -149,7 +169,14 @@ export async function discardReviewItem(queueId: number) {
   if (!db) return;
   const item = await db.queue.get(queueId);
   if (item?.payload?.local_row_id) {
-    await db.sales.delete(item.payload.local_row_id).catch(() => {});
+    const table = item.kind === "sale" ? db.sales
+      : item.kind === "expense" ? db.expenses
+        : item.kind === "credit_payment" ? db.credit_payments
+          : undefined;
+    await table?.delete(item.payload.local_row_id).catch(() => {});
+  }
+  if (item?.kind === "product" && item.payload?.row?.id) {
+    await db.products.delete(item.payload.row.id).catch(() => {});
   }
   await db.queue.delete(queueId);
 }

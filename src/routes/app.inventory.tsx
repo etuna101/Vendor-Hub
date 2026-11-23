@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
-import { offlineList, recordRestockOfflineFirst, recordStockLossOfflineFirst } from "@/lib/offline/actions";
+import { offlineList, recordProductOfflineFirst, recordRestockOfflineFirst, recordStockLossOfflineFirst } from "@/lib/offline/actions";
 import { useOffline } from "@/lib/offline/OfflineProvider";
 import { useI18n } from "@/lib/i18n";
 import { formatKsh, formatQty } from "@/lib/format";
@@ -32,6 +32,7 @@ function Inventory() {
 
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ["products"],
+    networkMode: "always",
     queryFn: () =>
       offlineList<any>("products", async () => {
         const { data, error } = await supabase.from("products").select("*").eq("is_active", true).order("name");
@@ -44,9 +45,10 @@ function Inventory() {
   const since = useMemo(() => new Date(Date.now() - 14 * 864e5), []);
   const { data: recentSales = [] } = useQuery({
     queryKey: ["sales-14d"],
+    networkMode: "always",
     queryFn: () =>
       offlineList<any>("sales", async () => {
-        const { data, error } = await supabase.from("sales").select("product_id, quantity, total, date").gte("date", since.toISOString());
+        const { data, error } = await supabase.from("sales").select("id, user_id, product_id, quantity, total, date").gte("date", since.toISOString());
         if (error) throw error;
         return data ?? [];
       }, (r) => new Date(r.date).getTime() >= since.getTime()),
@@ -153,9 +155,25 @@ function Inventory() {
       )}
       {!productsLoading && visibleCount < filtered.length && <button onClick={() => setVisibleCount((count) => count + 50)} className="tap-target rounded-xl border px-4 font-semibold">{lang === "sw" ? "Onyesha bidhaa zaidi" : "Show more products"}</button>}
 
-      {showAdd && <AddProductDialog onClose={() => setShowAdd(false)} onSaved={() => { qc.invalidateQueries({ queryKey: ["products"] }); setShowAdd(false); }} />}
-      {restocking && <RestockDialog productId={restocking} initialQty={prefillQty} product={products.find((p) => p.id === restocking)!} onClose={() => setRestocking(null)} onSaved={() => { qc.invalidateQueries(); setRestocking(null); }} />}
-      {losing && <LossDialog productId={losing} product={products.find((p) => p.id === losing)!} onClose={() => setLosing(null)} onSaved={() => { qc.invalidateQueries(); setLosing(null); }} />}
+      {showAdd && <AddProductDialog onClose={() => setShowAdd(false)} onSaved={() => {
+        void qc.invalidateQueries({ queryKey: ["products"] });
+        void qc.invalidateQueries({ queryKey: ["products-active"] });
+        setShowAdd(false);
+      }} />}
+      {restocking && <RestockDialog productId={restocking} initialQty={prefillQty} product={products.find((p) => p.id === restocking)!} onClose={() => setRestocking(null)} onSaved={() => {
+        void qc.invalidateQueries({ queryKey: ["products"] });
+        void qc.invalidateQueries({ queryKey: ["products-active"] });
+        void qc.invalidateQueries({ queryKey: ["dashboard"] });
+        void qc.invalidateQueries({ queryKey: ["reports"] });
+        setRestocking(null);
+      }} />}
+      {losing && <LossDialog productId={losing} product={products.find((p) => p.id === losing)!} onClose={() => setLosing(null)} onSaved={() => {
+        void qc.invalidateQueries({ queryKey: ["products"] });
+        void qc.invalidateQueries({ queryKey: ["products-active"] });
+        void qc.invalidateQueries({ queryKey: ["dashboard"] });
+        void qc.invalidateQueries({ queryKey: ["reports"] });
+        setLosing(null);
+      }} />}
     </div>
   );
 }
@@ -252,7 +270,8 @@ function EmptyState({ label, cta, onAdd }: { label: string; cta: string; onAdd: 
 }
 
 function AddProductDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  const { refresh: refreshOffline } = useOffline();
   const [form, setForm] = useState({ name: "", unit: "kg", current_stock: 0, low_stock_threshold: 5, cost_price: 0, selling_price: 0 });
   const [saving, setSaving] = useState(false);
   const set = <K extends keyof typeof form>(k: K, v: typeof form[K]) => setForm((f) => ({ ...f, [k]: v }));
@@ -260,12 +279,16 @@ function AddProductDialog({ onClose, onSaved }: { onClose: () => void; onSaved: 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
-    const { data: u } = await supabase.auth.getUser();
-    const { error } = await supabase.from("products").insert({ ...form, user_id: u.user!.id });
-    setSaving(false);
-    if (error) return toast.error(error.message);
-    toast.success("Saved");
-    onSaved();
+    try {
+      const result = await recordProductOfflineFirst(form);
+      await refreshOffline();
+      toast.success(result.queued ? (lang === "sw" ? "Imehifadhiwa nje ya mtandao; itasawazishwa" : "Saved offline; will sync") : "Saved");
+      onSaved();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not save product");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

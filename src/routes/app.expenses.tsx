@@ -34,6 +34,7 @@ function ExpensesScreen() {
 
   const { data: expenses = [], isLoading } = useQuery({
     queryKey: ["expenses", period],
+    networkMode: "always",
     queryFn: () =>
       offlineList<any>("expenses", async () => {
         const { data, error } = await supabase.from("expenses").select("*").gte("date", from.toISOString()).lte("date", to.toISOString()).order("date", { ascending: false });
@@ -84,7 +85,12 @@ function ExpensesScreen() {
           })}
         </div>
       )}
-      {open && <AddExpense onClose={() => setOpen(false)} onSaved={() => { qc.invalidateQueries(); setOpen(false); }} />}
+      {open && <AddExpense onClose={() => setOpen(false)} onSaved={() => {
+        void qc.invalidateQueries({ queryKey: ["expenses"] });
+        void qc.invalidateQueries({ queryKey: ["dashboard"] });
+        void qc.invalidateQueries({ queryKey: ["reports"] });
+        setOpen(false);
+      }} />}
     </div>
   );
 }
