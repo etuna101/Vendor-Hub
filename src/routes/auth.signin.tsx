@@ -94,14 +94,16 @@ function SignIn() {
   return (
     <div className="relative isolate min-h-screen">
       <picture className="fixed inset-0 -z-10 h-[100dvh] w-full">
-        <source srcSet={showcase2Mobile} media="(max-width: 640px)" />
         <img
           src={showcase2}
-          alt="Fresh produce vendor holding a crate of green peppers at a market stall"
+          srcSet={`${showcase2Mobile} 640w, ${showcase2} 1280w`}
+          sizes="100vw"
+          alt="Fresh produce arranged in baskets at a market stall"
           width={1280}
           height={960}
-          loading="lazy"
-          fetchPriority="low"
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
           className="h-full w-full object-cover object-[46%_center] sm:object-center"
         />
       </picture>

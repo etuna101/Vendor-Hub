@@ -103,7 +103,7 @@ function Dashboard() {
       <InsightCard loading={insightLoading} text={insightData?.insight} lang={lang} />
 
 
-      {dashboardLoading ? <div className="grid grid-cols-2 gap-3" aria-label={lang === "sw" ? "Inapakia" : "Loading"}>{Array.from({ length: 6 }, (_, i) => <div key={i} className="h-28 animate-pulse rounded-2xl bg-primary/10" />)}</div> : <div className="grid grid-cols-2 gap-3">
+      {dashboardLoading ? <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6" aria-label={lang === "sw" ? "Inapakia" : "Loading"}>{Array.from({ length: 6 }, (_, i) => <div key={i} className="h-28 animate-pulse rounded-2xl bg-primary/10" />)}</div> : <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
         <Stat onClick={() => nav({ to: "/app/sales" })} icon={<ShoppingCart size={18} />} label={t("totalSales")} value={formatKsh(data?.sales ?? 0)} tone="primary" />
         <Stat onClick={() => nav({ to: "/app/expenses" })} icon={<Receipt size={18} />} label={t("totalExpenses")} value={formatKsh(data?.expenses ?? 0)} tone="muted" />
         <Stat onClick={() => nav({ to: "/app/reports" })} icon={<Coins size={18} />} label={`${t("profit")} — ${t(period)}`} value={formatKsh(data?.profit ?? 0)} tone={data && data.profit >= 0 ? "primary" : "danger"} big />
@@ -176,7 +176,7 @@ function TrendCard({ points, label, lang }: { points: number[]; label: string; l
   const area = `${d} L${((points.length - 1) * step).toFixed(1)},${h} L0,${h} Z`;
   return (
     <div className="card-soft p-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-sm font-semibold text-muted-foreground">{label}</div>
         <div className="text-sm font-bold text-primary">{formatKsh(total)}</div>
       </div>
@@ -200,11 +200,11 @@ function Stat({ icon, label, value, tone, big, onClick }: { icon: React.ReactNod
     muted: "bg-card text-foreground",
   }[tone];
   return (
-    <button onClick={onClick} className={`card-soft flex flex-col items-start gap-1 p-4 text-left ${big ? "col-span-2" : ""} ${tone !== "muted" ? toneCls + " border-transparent" : ""}`}>
+    <button onClick={onClick} className={`card-soft flex min-w-0 flex-col items-start gap-1 p-3 text-left sm:p-4 ${big ? "col-span-2 xl:col-span-1" : ""} ${tone !== "muted" ? toneCls + " border-transparent" : ""}`}>
       <div className={`flex items-center gap-1.5 text-xs font-semibold ${tone === "muted" ? "text-muted-foreground" : "opacity-90"}`}>
         {icon} <span>{label}</span>
       </div>
-      <div className={`font-extrabold ${big ? "text-3xl" : "text-xl"}`}>{value}</div>
+      <div className={`max-w-full break-words font-extrabold ${big ? "text-2xl sm:text-3xl" : "text-lg sm:text-xl"}`}>{value}</div>
     </button>
   );
 }

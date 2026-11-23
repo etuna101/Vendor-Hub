@@ -86,7 +86,7 @@ function Reports() {
       >
         <div className="rounded-2xl bg-primary p-5 text-primary-foreground">
           <div className="text-sm font-semibold opacity-90">{t("profitCaption")} {periodLabel}</div>
-          <div className="mt-1 text-4xl font-extrabold">{formatKsh(data?.profit ?? 0)}</div>
+          <div className="mt-1 break-words text-3xl font-extrabold sm:text-4xl">{formatKsh(data?.profit ?? 0)}</div>
           <div className="mt-1 text-xs font-semibold opacity-90">
             {lang === "sw" ? "Mauzo − matumizi − hasara ya mboga" : "Sales − expenses − stock losses"}
           </div>

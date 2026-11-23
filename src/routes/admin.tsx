@@ -29,7 +29,7 @@ function AdminShell() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
     <div className="flex min-h-screen bg-muted/30">
-      <aside className="hidden md:flex w-64 flex-col border-r bg-card">
+      <aside className="hidden w-64 shrink-0 flex-col border-r bg-card md:flex">
         <div className="flex h-16 items-center gap-2 border-b px-5 font-extrabold text-primary">
           <ShieldCheck size={22} /> VendorHub Admin
         </div>
@@ -67,7 +67,7 @@ function AdminShell() {
             })}
           </div>
         </div>
-        <main className="flex-1 p-4 md:p-8 overflow-x-auto">
+        <main className="min-w-0 flex-1 overflow-x-auto p-3 sm:p-4 md:p-8">
           <Outlet />
         </main>
       </div>

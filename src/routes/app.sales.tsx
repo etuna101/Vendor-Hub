@@ -62,7 +62,7 @@ function SalesScreen() {
           <button onClick={() => setOpen(true)} className="tap-target rounded-2xl bg-primary px-6 font-bold text-primary-foreground">{t("newSale")}</button>
         </div>
       ) : (
-        <div className="grid gap-2">
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
           {visibleSales.map((s: any) => (
             <div key={s.id} className="card-soft flex items-start justify-between gap-3 p-4">
               <div className="min-w-0">

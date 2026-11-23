@@ -158,7 +158,7 @@ function CreditScreen() {
         <div className="text-xs font-bold uppercase tracking-widest text-background/70">
           {lang === "en" ? "Total outstanding" : "Deni jumla"}
         </div>
-        <div className="mt-1 text-4xl font-extrabold text-accent">
+        <div className="mt-1 break-words text-3xl font-extrabold text-accent sm:text-4xl">
           KES {Math.round(outstanding).toLocaleString("en-KE")}
         </div>
         <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-background/10 p-3">

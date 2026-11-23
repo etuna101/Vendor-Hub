@@ -5,7 +5,8 @@ import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { toast } from "sonner";
 import { Eye, EyeOff } from "lucide-react";
-import showcase1 from "@/assets/vendor-showcase-1.jpg";
+import showcase2 from "@/assets/vendor-showcase-2.jpg";
+import showcase2Mobile from "@/assets/vendor-showcase-2-mobile.jpg";
 
 export const Route = createFileRoute("/auth/signup")({
   component: SignUp,
@@ -55,15 +56,20 @@ function SignUp() {
 
   return (
     <div className="relative isolate min-h-screen">
-      <img
-        src={showcase1}
-        alt="Mama Mboga vendor seated at her open-air fruit and vegetable stall"
-        width={399}
-        height={501}
-        loading="lazy"
-        fetchPriority="low"
-        className="fixed inset-0 -z-10 h-full w-full object-cover object-center"
-      />
+      <picture className="fixed inset-0 -z-10 h-[100dvh] w-full">
+        <img
+          src={showcase2}
+          srcSet={`${showcase2Mobile} 640w, ${showcase2} 1280w`}
+          sizes="100vw"
+          alt="Fresh vegetables and produce displayed at an outdoor market stall"
+          width={1280}
+          height={960}
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
+          className="h-full w-full object-cover object-center"
+        />
+      </picture>
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-foreground/85 via-foreground/75 to-foreground/90" />
       <div className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center px-5 py-10">
         <Logo size={40} />

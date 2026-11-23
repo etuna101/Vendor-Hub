@@ -14,7 +14,7 @@ export function BottomNav() {
   ];
   return (
     <nav className="sticky bottom-0 z-30 border-t border-border bg-card/98 pb-[env(safe-area-inset-bottom)] backdrop-blur">
-      <div className="mx-auto grid max-w-2xl grid-cols-5">
+      <div className="mx-auto grid w-full max-w-4xl grid-cols-5">
         {tabs.map(({ to, label, Icon }) => {
           const active = pathname.startsWith(to);
           return (
@@ -22,10 +22,10 @@ export function BottomNav() {
               key={to}
               to={to}
               preload="intent"
-              className={`flex min-h-[64px] flex-col items-center justify-center gap-1 py-2 text-xs font-semibold ${active ? "text-primary" : "text-muted-foreground"}`}
+              className={`flex min-h-[64px] min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-[11px] font-semibold sm:text-xs ${active ? "text-primary" : "text-muted-foreground"}`}
             >
               <Icon size={22} strokeWidth={active ? 2.4 : 2} />
-              <span>{label}</span>
+              <span className="max-w-full truncate">{label}</span>
             </Link>
           );
         })}

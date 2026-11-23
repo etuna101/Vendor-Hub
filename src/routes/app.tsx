@@ -61,7 +61,7 @@ function AppShell() {
   };
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col">
+    <div className="mx-auto flex min-h-screen w-full max-w-screen-2xl min-w-0 flex-col">
       <DueDebtNotifications />
       <TopBar
         right={
@@ -70,14 +70,14 @@ function AppShell() {
             disabled={signingOut}
             aria-label={t("signOut")}
             aria-busy={signingOut}
-            className="flex items-center gap-1 rounded-full px-3 py-1 text-sm font-semibold text-muted-foreground disabled:opacity-60"
+            className="flex items-center gap-1 rounded-full px-2 py-1 text-sm font-semibold text-muted-foreground disabled:opacity-60 sm:px-3"
           >
             <LogOut size={16} />{" "}
             <span className="hidden sm:inline">{signingOut ? "…" : t("signOut")}</span>
           </button>
         }
       />
-      <main className="flex-1 px-4 pt-4 pb-6">
+      <main className="min-w-0 flex-1 px-3 pt-4 pb-6 sm:px-5 lg:px-8">
         <Outlet />
       </main>
       <BottomNav />

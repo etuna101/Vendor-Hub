@@ -3,7 +3,8 @@ import { useI18n } from "@/lib/i18n";
 import { Logo } from "@/components/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { Sprout, Scale, Handshake, type LucideIcon } from "lucide-react";
-import showcase1 from "@/assets/vendor-showcase-1.jpg";
+import showcase2 from "@/assets/vendor-showcase-2.jpg";
+import showcase2Mobile from "@/assets/vendor-showcase-2-mobile.jpg";
 
 export const Route = createFileRoute("/")({
   beforeLoad: async () => {
@@ -18,15 +19,20 @@ function Landing() {
   const { t, lang, setLang } = useI18n();
   return (
     <div className="relative isolate min-h-screen">
-      <img
-        src={showcase1}
-        alt="Mama Mboga vendor seated at her open-air fruit and vegetable stall"
-        width={399}
-        height={501}
-        loading="lazy"
-        fetchPriority="low"
-        className="fixed inset-0 -z-10 h-full w-full object-cover object-center"
-      />
+      <picture className="fixed inset-0 -z-10 h-[100dvh] w-full">
+        <img
+          src={showcase2}
+          srcSet={`${showcase2Mobile} 640w, ${showcase2} 1280w`}
+          sizes="100vw"
+          alt="Fresh vegetables and produce displayed at an outdoor market stall"
+          width={1280}
+          height={960}
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
+          className="h-full w-full object-cover object-center"
+        />
+      </picture>
       <div className="fixed inset-0 -z-10 bg-gradient-to-b from-foreground/80 via-foreground/70 to-foreground/90" />
 
       <header className="flex items-center justify-between px-5 py-4">

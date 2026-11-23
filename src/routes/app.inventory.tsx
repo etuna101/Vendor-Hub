@@ -113,10 +113,10 @@ function Inventory() {
         </div>
       )}
 
-      {productsLoading ? <div className="grid gap-3" aria-label={lang === "sw" ? "Inapakia" : "Loading"}>{Array.from({ length: 4 }, (_, i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-primary/10" />)}</div> : filtered.length === 0 ? (
+      {productsLoading ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" aria-label={lang === "sw" ? "Inapakia" : "Loading"}>{Array.from({ length: 4 }, (_, i) => <div key={i} className="h-24 animate-pulse rounded-2xl bg-primary/10" />)}</div> : filtered.length === 0 ? (
         <EmptyState onAdd={() => setShowAdd(true)} label={t("empty_products")} cta={t("addProduct")} />
       ) : (
-        <div className="grid gap-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {visibleProducts.map((p) => {
             const isLow = Number(p.current_stock) <= Number(p.low_stock_threshold);
             const a = adviceById[p.id];
@@ -360,7 +360,7 @@ function FormField({ label, children }: { label: string; children: React.ReactNo
 export function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center" onClick={onClose}>
-      <div className="w-full max-w-md rounded-t-3xl bg-card p-5 shadow-xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+      <div className="max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-card p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
         <h2 className="mb-4 text-xl font-extrabold">{title}</h2>
         {children}
       </div>

@@ -72,7 +72,7 @@ function Assistant() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-9rem)] flex-col gap-3">
+    <div className="flex h-[calc(100dvh-9rem)] min-h-[16rem] flex-col gap-3">
       <div className="flex items-center gap-2">
         <div className="grid h-10 w-10 place-items-center rounded-full bg-primary/10">
           <Sparkles size={18} className="text-primary" />

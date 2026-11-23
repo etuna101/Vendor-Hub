@@ -68,7 +68,7 @@ function ExpensesScreen() {
           <button onClick={() => setOpen(true)} className="tap-target rounded-2xl bg-primary px-6 font-bold text-primary-foreground">{t("addExpense")}</button>
         </div>
       ) : (
-        <div className="grid gap-2">
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
           {expenses.map((e: any) => {
             const cat = CATEGORIES.find((c) => c.key === e.category);
             const label = cat ? (lang === "sw" ? cat.sw : cat.en) : e.category;

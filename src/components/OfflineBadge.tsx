@@ -10,7 +10,7 @@ export function OfflineBadge() {
 
   if (!online) {
     return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-accent/20 px-3 py-1 text-xs font-bold text-accent-foreground">
+      <span title={lang === "sw" ? "Nje ya mtandao — itasawazishwa" : "Offline — will sync"} className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/20 px-2 py-1 text-xs font-bold text-accent-foreground max-[380px]:text-[0px] sm:px-3">
         <CloudOff size={14} />
         {lang === "sw" ? "Nje ya mtandao — itasawazishwa" : "Offline — will sync"}
       </span>
@@ -18,7 +18,7 @@ export function OfflineBadge() {
   }
 
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-xs font-bold text-foreground">
+    <span title={lang === "sw" ? `Inasawazisha ${pending}` : `Syncing ${pending}`} className="inline-flex shrink-0 items-center gap-1 rounded-full bg-secondary px-2 py-1 text-xs font-bold text-foreground max-[380px]:text-[0px] sm:px-3">
       <RefreshCw size={14} className="animate-spin" />
       {lang === "sw" ? `Inasawazisha ${pending}` : `Syncing ${pending}`}
     </span>
