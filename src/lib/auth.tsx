@@ -63,7 +63,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === "PASSWORD_RECOVERY" && typeof window !== "undefined") {
+        sessionStorage.setItem("vendorhub:password-recovery-at", String(Date.now()));
+      }
       setSession(s);
       setLoading(false);
     });

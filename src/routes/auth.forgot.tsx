@@ -21,11 +21,10 @@ function Forgot() {
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get("mode") !== "update") return;
+    const recoveryAt = Number(sessionStorage.getItem("vendorhub:password-recovery-at") ?? 0);
+    if (recoveryAt && Date.now() - recoveryAt < 60 * 60 * 1000) setStep("update");
     const { data } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") setStep("update");
-    });
-    supabase.auth.getSession().then(({ data: sessionData }) => {
-      if (sessionData.session) setStep("update");
     });
     return () => data.subscription.unsubscribe();
   }, []);
@@ -81,6 +80,7 @@ function Forgot() {
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) return toast.error(error.message);
+    sessionStorage.removeItem("vendorhub:password-recovery-at");
     setStep("done");
   };
 

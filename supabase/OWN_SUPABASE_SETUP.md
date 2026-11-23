@@ -36,6 +36,11 @@ already exists, that object is already correct — continue with the rest.
 - Authentication → Email Templates → Confirm signup: retain the Supabase
   confirmation URL (`{{ .ConfirmationURL }}`) so the link verifies the account
   before redirecting back to the app.
+- Authentication → Email Templates → Reset Password: keep a working recovery
+  link using `{{ .ConfirmationURL }}`. The app sends recovery links to
+  `/auth/forgot?mode=update`; ensure that deployed URL and localhost equivalent
+  are in the Redirect URLs allow list above. Configure custom SMTP before
+  expecting recovery email delivery to vendor addresses.
 - If you want Google sign-in, enable the Google provider and add its client id/secret.
 
 ## 3. Point the app at your project
