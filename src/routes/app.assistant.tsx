@@ -58,7 +58,7 @@ function Assistant() {
       const requestId = failure?.[2];
       const reference = requestId ? ` (${code}; ref ${requestId})` : "";
       if (code === "RATE_LIMIT") toast.error((lang === "sw" ? "Groq inapokea maombi mengi kwa sasa. Jaribu tena baadaye." : "Groq is receiving too many requests. Try again shortly.") + reference);
-      else if (code === "CONFIG") toast.error((lang === "sw" ? "GROQ_API_KEY haikupatikana kwenye mazingira ya seva. Anzisha seva upya." : "GROQ_API_KEY was not found in the server environment. Restart the dev server.") + reference);
+      else if (code === "CONFIG") toast.error((lang === "sw" ? "GROQ_API_KEY haijawekwa kwenye siri za seva ya uzalishaji. Iongeze kwenye mipangilio ya hosting kisha uchapishe upya." : "GROQ_API_KEY is missing from the production server secrets. Add it in your hosting settings, then redeploy.") + reference);
       else if (code === "AUTH") toast.error((lang === "sw" ? "Groq haikukubali API key. Hakikisha umeweka key mpya na sahihi." : "Groq rejected the API key. Check that your replacement key is valid.") + reference);
       else if (code === "PERMISSION") toast.error((lang === "sw" ? "Groq imezuia ufikiaji wa key au modeli hii. Angalia ruhusa za akaunti." : "Groq denied access to this key or model. Check your account permissions.") + reference);
       else if (code === "BILLING") toast.error((lang === "sw" ? "Akaunti ya Groq inahitaji mipangilio ya matumizi au malipo." : "The Groq account needs its usage or billing settings checked.") + reference);

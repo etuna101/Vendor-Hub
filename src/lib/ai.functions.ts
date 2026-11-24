@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
@@ -248,7 +249,13 @@ async function loadSystemPrompt(supabase: any, lang: Lang, mode: "insight" | "ch
 }
 
 async function callGroq(messages: ChatTurn[]) {
-  const key = process.env.GROQ_API_KEY?.trim();
+  // Cloudflare Workers inject secrets as per-request bindings. Nitro v3
+  // exposes those bindings on the active request; process.env remains the
+  // fallback for local development and Node-based hosts.
+  const request = getRequest() as Request & {
+    runtime?: { cloudflare?: { env?: Record<string, string | undefined> } };
+  };
+  const key = (request.runtime?.cloudflare?.env?.GROQ_API_KEY ?? process.env.GROQ_API_KEY)?.trim();
   if (!key) throw new AssistantError("CONFIG", "Missing GROQ_API_KEY server secret");
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 25_000);

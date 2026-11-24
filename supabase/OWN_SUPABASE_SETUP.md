@@ -70,6 +70,18 @@ hosting provider's server environment variables before deploying. Never prefix
 it with `VITE_` or expose it to the browser. For local development, add it to
 the project `.env` file and restart the dev server after changing it.
 
+For an existing production deployment, remove the obsolete `GEMINI_API_KEY`
+server variable, set `GROQ_API_KEY` in the hosting provider's server-side
+secrets, then build and redeploy the latest app. The app has no Gemini provider
+fallback; a deployment without `GROQ_API_KEY` will show a configuration error.
+This app's generated production target is Cloudflare Workers. For a direct
+Workers deployment, set the production secret with `npx wrangler secret put
+GROQ_API_KEY` (enter the key when prompted), or add it under the Worker's
+**Settings â†’ Variables and Secrets** in Cloudflare. Set it for the environment
+that serves production, then redeploy. Never put the key in a `VITE_` variable
+or a checked-in `vars` block. The server reads the Cloudflare binding per
+request and uses `process.env` for local development.
+
 Only ever use the **anon / publishable** key in the app. Never put the service role
 key or database password in `.env`, client code, or chat.
 
