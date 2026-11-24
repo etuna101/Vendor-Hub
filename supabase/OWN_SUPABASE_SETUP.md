@@ -53,7 +53,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=<your anon / publishable key>
 VITE_SUPABASE_PROJECT_ID=<your-ref>
 SUPABASE_URL=https://<your-ref>.supabase.co
 SUPABASE_PUBLISHABLE_KEY=<your anon / publishable key>
-GEMINI_API_KEY=<server-side Google AI Studio API key>
+GROQ_API_KEY=<server-side Groq API key>
 ```
 
 - **On Vercel / your own hosting:** set those five variables in the project's
@@ -64,9 +64,11 @@ GEMINI_API_KEY=<server-side Google AI Studio API key>
   connection** (connect your own Supabase project). After that, the same code
   runs against your database.
 
-The assistant calls the Gemini API directly from the server using `GEMINI_API_KEY`.
-Add that secret to your hosting provider's server environment variables before
-deploying. Never prefix it with `VITE_` or expose it to the browser.
+The assistant calls Groq's chat completions API directly from the server using
+`GROQ_API_KEY` and the `openai/gpt-oss-120b` model. Add this secret to your
+hosting provider's server environment variables before deploying. Never prefix
+it with `VITE_` or expose it to the browser. For local development, add it to
+the project `.env` file and restart the dev server after changing it.
 
 Only ever use the **anon / publishable** key in the app. Never put the service role
 key or database password in `.env`, client code, or chat.

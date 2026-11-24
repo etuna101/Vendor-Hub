@@ -57,14 +57,14 @@ function Assistant() {
       const code = failure?.[1];
       const requestId = failure?.[2];
       const reference = requestId ? ` (${code}; ref ${requestId})` : "";
-      if (code === "RATE_LIMIT") toast.error((lang === "sw" ? "Gemini ina maombi mengi kwa sasa. Jaribu tena baadaye." : "Gemini is receiving too many requests. Try again shortly.") + reference);
-      else if (code === "CONFIG") toast.error((lang === "sw" ? "GEMINI_API_KEY haikupatikana kwenye mazingira ya seva. Anzisha seva upya." : "GEMINI_API_KEY was not found in the server environment. Restart the dev server.") + reference);
-      else if (code === "AUTH") toast.error((lang === "sw" ? "Gemini haikukubali API key. Hakikisha ni key mpya na sahihi." : "Gemini rejected the API key. Check that the replacement key is valid.") + reference);
-      else if (code === "PERMISSION") toast.error((lang === "sw" ? "Google imezuia mradi au key hii. Angalia ruhusa za Gemini API, uthibitishaji na vizuizi vya key." : "Google denied access for this project or key. Check Gemini API access, project verification, and key restrictions.") + reference);
-      else if (code === "BILLING") toast.error((lang === "sw" ? "Mradi unahitaji mipangilio ya malipo ili kutumia Gemini API." : "This project needs billing configured to use the Gemini API.") + reference);
-      else if (code === "MODEL") toast.error((lang === "sw" ? "Gemini haikupata modeli iliyowekwa." : "Gemini could not find the configured model.") + reference);
-      else if (code === "API") toast.error((lang === "sw" ? "Gemini ilikataa muundo wa ombi." : "Gemini rejected the request format.") + reference);
-      else if (code === "QUOTA") toast.error((lang === "sw" ? "Kiwango cha matumizi ya Gemini kimefika. Angalia matumizi katika Google AI Studio." : "The Gemini API quota is exhausted. Check Google AI Studio usage.") + reference);
+      if (code === "RATE_LIMIT") toast.error((lang === "sw" ? "Groq inapokea maombi mengi kwa sasa. Jaribu tena baadaye." : "Groq is receiving too many requests. Try again shortly.") + reference);
+      else if (code === "CONFIG") toast.error((lang === "sw" ? "GROQ_API_KEY haikupatikana kwenye mazingira ya seva. Anzisha seva upya." : "GROQ_API_KEY was not found in the server environment. Restart the dev server.") + reference);
+      else if (code === "AUTH") toast.error((lang === "sw" ? "Groq haikukubali API key. Hakikisha umeweka key mpya na sahihi." : "Groq rejected the API key. Check that your replacement key is valid.") + reference);
+      else if (code === "PERMISSION") toast.error((lang === "sw" ? "Groq imezuia ufikiaji wa key au modeli hii. Angalia ruhusa za akaunti." : "Groq denied access to this key or model. Check your account permissions.") + reference);
+      else if (code === "BILLING") toast.error((lang === "sw" ? "Akaunti ya Groq inahitaji mipangilio ya matumizi au malipo." : "The Groq account needs its usage or billing settings checked.") + reference);
+      else if (code === "MODEL") toast.error((lang === "sw" ? "Groq haikupata modeli iliyowekwa." : "Groq could not find the configured model.") + reference);
+      else if (code === "API") toast.error((lang === "sw" ? "Groq ilikataa muundo wa ombi." : "Groq rejected the request format.") + reference);
+      else if (code === "QUOTA") toast.error((lang === "sw" ? "Kikomo cha matumizi ya Groq kimefika. Angalia viwango vya akaunti." : "The Groq usage quota is exhausted. Check your account limits.") + reference);
       else toast.error((lang === "sw" ? "Msaidizi hakuweza kujibu. Jaribu tena." : "The assistant couldn't answer. Please try again.") + reference);
     } finally {
       setBusy(false);

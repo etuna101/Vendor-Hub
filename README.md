@@ -10,7 +10,7 @@ VendorHub is a mobile-first business management app for kiosk and market vendors
 - Inventory, restocking, and stock-loss tracking
 - Customer credit and payment tracking, including M-Pesa payment flows
 - Offline support for selected records, with a local queue that syncs when connectivity returns
-- AI business assistant backed by a server-side Gemini API call
+- AI business assistant backed by a server-side Groq API call
 - Installable Progressive Web App (PWA)
 
 SMS delivery and some reminder flows depend on the Supabase Edge Function and provider configuration described in [Supabase setup](supabase/OWN_SUPABASE_SETUP.md). A reminder may be recorded without a live SMS being sent.
@@ -46,10 +46,10 @@ SMS delivery and some reminder flows depend on the Supabase Edge Function and pr
    SUPABASE_URL=https://<project-ref>.supabase.co
    SUPABASE_PUBLISHABLE_KEY=<publishable-or-anon-key>
    SUPABASE_SERVICE_ROLE_KEY=<server-only-service-role-key>
-   GEMINI_API_KEY=<server-only-gemini-key>
+   GROQ_API_KEY=<server-only-groq-key>
    ```
 
-   The service role key and Gemini key are server secrets. Do not use a `VITE_` prefix for either one or expose them in browser code. The service role key is only needed for server code that requires privileged Supabase access; keep it out of client configuration.
+   The service role key and Groq key are server secrets. Do not use a `VITE_` prefix for either one or expose them in browser code. The service role key is only needed for server code that requires privileged Supabase access; keep it out of client configuration.
 
 3. For a new Supabase project, follow [the Supabase setup guide](supabase/OWN_SUPABASE_SETUP.md). It covers schema installation, auth settings, Edge Functions, and optional M-Pesa/SMS provider setup. The app expects the database schema and RPCs provided by this project.
 
