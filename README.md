@@ -1,57 +1,75 @@
-﻿# VendorHub — Kenya Kiosk Keeper
+<!-- LOVABLE:BEGIN -->
+> [!IMPORTANT]
+> This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
+> published git history — force pushing, or rebasing/amending/squashing commits
+> that are already pushed — as it rewrites history on Lovable's side and the
+> user will likely lose their project history.
+>
+> Commits you push to the connected branch sync back to Lovable and show up in
+> the editor, so keep the branch in a working state.
+<!-- LOVABLE:END -->
 
-VendorHub is a mobile-first business management app for kiosk and market vendors in Kenya. It provides tools for recording sales, tracking stock and expenses, managing customer credit, and reviewing business performance. The interface supports English and Swahili.
+# VendorHub — Kenya Kiosk Keeper
+
+VendorHub is a mobile-first business management app for kiosk and market vendors in Kenya. Vendors can record sales and expenses, manage stock and customer credit, and review business performance in English or Swahili.
 
 ## Features
 
-- Vendor signup, sign-in, account status, and admin vendor management
-- Dashboard and reports for sales, expenses, profit, inventory, and credit
-- Sales entry for cash and credit transactions
-- Inventory, restocking, and stock-loss tracking
-- Customer credit and payment tracking, including M-Pesa payment flows
-- Offline support for selected records, with a local queue that syncs when connectivity returns
-- AI business assistant backed by a server-side Groq API call
+- Vendor registration, sign-in, email verification, approval status, and profile management
+- Vendor dashboard, reports, and sales, expenses, inventory, and credit records
+- Cash and credit sales, customer payments, restocking, and stock-loss records
+- Customer debt balances, due-date notifications, and payment reminders
+- M-Pesa STK Push for payments, with payment results processed through a Supabase callback
+- Offline-first access to cached records and queued sales, expenses, inventory, and credit-payment changes; queued changes sync when the device reconnects and can be reviewed
+- Business assistant that summarizes vendor data and answers questions using a server-side Groq API call
+- Admin tools for vendor approvals, administrators, platform statistics, AI interaction logs, and assistant prompts
+- Lovable MCP tools for authorized business summaries, product and credit lookups, and recording sales or expenses
 - Installable Progressive Web App (PWA)
 
-SMS delivery and some reminder flows depend on the Supabase Edge Function and provider configuration described in [Supabase setup](supabase/OWN_SUPABASE_SETUP.md). A reminder may be recorded without a live SMS being sent.
+Live M-Pesa and SMS delivery require provider credentials and deployed Supabase Edge Functions. Reminders can also be recorded in the app without live SMS delivery. See [Supabase setup](supabase/OWN_SUPABASE_SETUP.md).
 
 ## Tech stack
 
 - React 19, TypeScript, and Vite
 - TanStack Start and TanStack Router
 - TanStack Query
-- Supabase Auth, database, and Edge Functions
+- Supabase Auth, Postgres, Row Level Security, RPCs, and Edge Functions
 - Tailwind CSS and Radix UI
-- Dexie / IndexedDB for local offline data
-- Vite PWA plugin
+- Dexie / IndexedDB for offline records and sync queue
+- Vite PWA plugin and Workbox
+- Lovable MCP integration
 
 ## Requirements
 
 - Node.js and npm (or Bun)
-- A Supabase project configured with the VendorHub schema
+- A configured Supabase project; see [the setup guide](supabase/OWN_SUPABASE_SETUP.md)
 
 ## Local development
 
-1. Install dependencies from this directory:
+Run commands from this directory (`kenya-kiosk-keeper`).
+
+1. Install dependencies:
 
    ```sh
    npm install
    ```
 
-2. Create a `.env` file in the project root and set the variables below. Never commit real credentials.
+   Or use `bun install`.
+
+2. Create a `.env` file in the project root:
 
    ```dotenv
    VITE_SUPABASE_URL=https://<project-ref>.supabase.co
    VITE_SUPABASE_PUBLISHABLE_KEY=<publishable-or-anon-key>
+   VITE_SUPABASE_PROJECT_ID=<project-ref>
    SUPABASE_URL=https://<project-ref>.supabase.co
    SUPABASE_PUBLISHABLE_KEY=<publishable-or-anon-key>
-   SUPABASE_SERVICE_ROLE_KEY=<server-only-service-role-key>
-   GROQ_API_KEY=<server-only-groq-key>
+   GROQ_API_KEY=<server-side-groq-key>
    ```
 
-   The service role key and Groq key are server secrets. Do not use a `VITE_` prefix for either one or expose them in browser code. The service role key is only needed for server code that requires privileged Supabase access; keep it out of client configuration.
+   The Vite variables are public client configuration. `GROQ_API_KEY` is a server secret: do not prefix it with `VITE_` or expose it in browser code. The app uses only the Supabase publishable/anon key; never put a service-role key or database password in client configuration. Provider secrets for M-Pesa and SMS belong in Supabase Edge Function secrets.
 
-3. For a new Supabase project, follow [the Supabase setup guide](supabase/OWN_SUPABASE_SETUP.md). It covers schema installation, auth settings, Edge Functions, and optional M-Pesa/SMS provider setup. The app expects the database schema and RPCs provided by this project.
+3. Configure the Supabase schema, authentication, and any integrations you need by following [Supabase setup](supabase/OWN_SUPABASE_SETUP.md). The app relies on the project's tables, row-level security policies, and database RPCs.
 
 4. Start the development server:
 
@@ -63,7 +81,7 @@ SMS delivery and some reminder flows depend on the Supabase Edge Function and pr
 
 | Command | Description |
 | --- | --- |
-| `npm run dev` | Start the local development server |
+| `npm run dev` | Start the development server |
 | `npm run build` | Create a production build |
 | `npm run build:dev` | Build using development mode |
 | `npm run preview` | Serve the production build locally |
@@ -74,25 +92,25 @@ SMS delivery and some reminder flows depend on the Supabase Edge Function and pr
 
 ```text
 src/
-  components/       Shared UI and app navigation
-  integrations/     Supabase client, server client, and auth middleware
-  lib/              Auth, localization, reporting, assistant, and offline logic
-  routes/           File-based TanStack routes
-  styles.css        Global styles
-  router.tsx        Router setup
+  components/       Shared UI, navigation, and dialogs
+  hooks/            Shared React hooks
+  integrations/     Supabase clients and authentication middleware
+  lib/              Auth, localization, reporting, assistant, MCP, and offline logic
+  routes/           File-based TanStack routes for vendor, admin, and auth screens
+  assets/           App images and branding
   server.ts         Server entry and error handling
 supabase/
-  functions/        M-Pesa, SMS, password reset, and reminder Edge Functions
-  migrations/      Database migrations
-  scripts/         Schema and SQL update scripts
+  functions/        M-Pesa, SMS, password-reset, and debt-reminder Edge Functions
+  migrations/       Database migrations
+  scripts/          Schema and SQL update scripts
   OWN_SUPABASE_SETUP.md
-public/             PWA assets and service worker
+public/             PWA icons, favicon, and service worker
 ```
 
-Routes are defined by files in `src/routes/`; see [the route conventions](src/routes/README.md). The generated `src/routeTree.gen.ts` should not be edited by hand.
+Routes are defined by files in `src/routes/`; see [route conventions](src/routes/README.md). `src/routeTree.gen.ts` is generated and should not be edited by hand.
 
-## Deployment notes
+## Deployment
 
-Build the app with `npm run build` and configure the required environment variables in the hosting provider. Set the public Supabase URL and publishable key for the client, and keep server-only credentials in the server environment. Supabase Edge Functions and their third-party provider secrets are deployed and configured separately; see the setup guide for the steps and secret names.
+Build with `npm run build` and configure the Supabase URL and publishable key for the client, plus `GROQ_API_KEY` as a server-side secret. The generated production target uses Cloudflare Workers. Deploy Supabase Edge Functions and configure their provider secrets separately if you enable M-Pesa or SMS. Follow [Supabase setup](supabase/OWN_SUPABASE_SETUP.md) for schema, auth, deployment, and secret details.
 
-The app uses Supabase RPCs for transactional operations such as sales, restocking, and stock loss. Keep database migrations and functions in sync with client changes.
+Keep database migrations and RPC definitions in sync with client changes: transactional operations such as sales, restocking, stock loss, and M-Pesa payment processing depend on them.
